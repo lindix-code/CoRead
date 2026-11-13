@@ -575,9 +575,35 @@ async function renderLibrary() {
 }
 
 // Zeigt die Unterlisten (Regal, Lese ich gerade, Abgeschlossen, Möchte ich lesen)
+let libBooks = [];
+let libReadOnly = false;
+let libQuery = "";
+
+function normalize(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+// Alle Suchwörter müssen irgendwo im Buch vorkommen (Titel, Autor:in, Verlag, Genre, ISBN …)
+function matchesQuery(book) {
+  const words = normalize(libQuery).split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = normalize(
+    [book.title, book.subtitle, book.authors.join(" "), book.publisher, book.categories.join(" "), book.isbn, book.publishedDate].join(" ")
+  );
+  return words.every((w) => hay.includes(w));
+}
+
+// Zeigt die Unterlisten (Regal, Ungelesen, Lese ich gerade, Abgeschlossen, Möchte ich lesen)
 function renderLists(books, readOnly) {
+  libBooks = books;
+  libReadOnly = readOnly;
+  const searching = normalize(libQuery).trim() !== "";
+
   const buttons = LISTS.map(([key, label, test]) => {
-    const count = books.filter(test).length;
+    const count = books.filter(test).filter(matchesQuery).length;
     const btn = el(
       "button",
       { className: key === libList ? "btn" : "btn secondary", type: "button" },
@@ -585,20 +611,29 @@ function renderLists(books, readOnly) {
     );
     btn.onclick = () => {
       libList = key;
-      renderLists(books, readOnly);
+      renderLists(libBooks, libReadOnly);
     };
     return btn;
   });
   $("lib-lists").replaceChildren(...buttons);
 
   const [, label, test] = LISTS.find(([key]) => key === libList);
-  const shown = books.filter(test);
+  const shown = books.filter(test).filter(matchesQuery);
   const who = readOnly && friend ? friend.display_name + ": " : "";
-  $("library-status").textContent = shown.length
-    ? `${who}${label}`
-    : `${who}Noch nichts in „${label}“.`;
+  if (shown.length) {
+    $("library-status").textContent = searching ? `${who}${label}: ${shown.length} Treffer` : `${who}${label}`;
+  } else {
+    $("library-status").textContent = searching
+      ? `${who}Keine Treffer in „${label}“.`
+      : `${who}Noch nichts in „${label}“.`;
+  }
   renderGrid($("library"), shown, readOnly);
 }
+
+$("lib-search").oninput = (event) => {
+  libQuery = event.target.value;
+  renderLists(libBooks, libReadOnly);
+};
 
 // ---------- Startseite ----------
 
@@ -708,46 +743,11 @@ function renderHome() {
   renderYearOverview();
 
   $("stack-count").textContent = stackBooks().length;
-  renderStackOverview();
 }
-
-let stackOpen = false;
 
 // Stapel ungelesener Bücher (SuB): gekauft (Bücherregal) und noch zu lesen
 function stackBooks() {
   return myLibrary.filter(isUnread);
-}
-
-function renderStackOverview() {
-  const box = $("stack-overview");
-  $("tile-stack").setAttribute("aria-expanded", String(stackOpen));
-  box.hidden = !stackOpen;
-  if (!stackOpen) return;
-
-  const books = stackBooks();
-  if (!books.length) {
-    box.replaceChildren(
-      el("p", { className: "meta" }, "Dein Stapel ist leer. Hier landen gekaufte Bücher (im Bücherregal), die du noch lesen möchtest.")
-    );
-    return;
-  }
-  const rows = books.map((book) => {
-    const row = el("button", { className: "row", type: "button" });
-    const info = el(
-      "div",
-      { className: "row-info" },
-      el("div", { className: "title" }, book.title),
-      el("div", { className: "author" }, book.authors.join(", ")),
-      el("div", { className: "meta" }, "Gekauft, noch ungelesen")
-    );
-    row.append(el("div", { className: "row-cover" }, coverElement(book)), info);
-    row.onclick = () => showDetail(book);
-    return row;
-  });
-  box.replaceChildren(
-    el("h3", {}, `Stapel ungelesener Bücher: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`),
-    ...rows
-  );
 }
 
 let yearOpen = false;
@@ -849,15 +849,12 @@ $("tile-shelf").onclick = () => {
 };
 $("tile-year").onclick = () => {
   yearOpen = !yearOpen;
-  if (yearOpen) stackOpen = false;
   renderYearOverview();
-  renderStackOverview();
 };
 $("tile-stack").onclick = () => {
-  stackOpen = !stackOpen;
-  if (stackOpen) yearOpen = false;
-  renderYearOverview();
-  renderStackOverview();
+  libView = "mine";
+  libList = "unread";
+  showTab("library");
 };
 
 // ---------- Verbindung ----------
