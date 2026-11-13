@@ -179,7 +179,7 @@ function bookToDb(book) {
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, owned, finished_at, progress_page, rating, books(*)")
+    .select("status, owned, started_at, finished_at, progress_page, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
@@ -188,6 +188,7 @@ async function fetchLibrary(userId) {
     entry: {
       status: r.status,
       owned: r.owned,
+      startedAt: r.started_at,
       finishedAt: r.finished_at,
       progress: r.progress_page,
       rating: r.rating,
@@ -208,6 +209,7 @@ async function saveEntry(book, entry) {
       book_id: book.id,
       status: entry.status,
       owned: entry.owned,
+      started_at: entry.startedAt,
       finished_at: entry.finishedAt,
       progress_page: entry.progress,
       rating: entry.rating,
@@ -360,17 +362,25 @@ function showDetail(book, readOnly = false) {
     );
     const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: !!(entry && entry.owned) });
     const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal");
+    const startedField = el(
+      "label",
+      { className: "field" },
+      "Begonnen am",
+      el("input", { id: "f-started", type: "date", value: (entry && entry.startedAt) || "" })
+    );
     const finishedField = el(
       "label",
       { className: "field" },
-      "Gelesen am",
+      "Beendet am",
       el("input", { id: "f-finished", type: "date", value: (entry && entry.finishedAt) || "" })
     );
     const statusSelect = statusField.querySelector("select");
-    finishedField.hidden = statusSelect.value !== "read";
-    statusSelect.onchange = () => {
+    const updateDateFields = () => {
+      startedField.hidden = !["reading", "read"].includes(statusSelect.value);
       finishedField.hidden = statusSelect.value !== "read";
     };
+    updateDateFields();
+    statusSelect.onchange = updateDateFields;
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
       id: "f-progress",
@@ -401,6 +411,10 @@ function showDetail(book, readOnly = false) {
         await saveEntry(book, {
           status,
           owned,
+          startedAt:
+            status === "reading" || status === "read"
+              ? $("f-started").value || (status === "reading" ? todayLocal() : null)
+              : null,
           finishedAt: status === "read" ? $("f-finished").value || todayLocal() : null,
           progress: $("f-progress").value === "" ? null : Number($("f-progress").value),
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
@@ -431,7 +445,7 @@ function showDetail(book, readOnly = false) {
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, finishedField, ownedField, progressField, ratingField, actions, msg);
+    content.append(statusField, startedField, finishedField, ownedField, progressField, ratingField, actions, msg);
   }
 
   $("detail-content").replaceChildren(content);
@@ -577,9 +591,67 @@ function renderHome() {
 
   const year = String(new Date().getFullYear());
   $("year-label").textContent = `Gelesen ${year}`;
-  $("year-count").textContent = myLibrary.filter(
-    (b) => b.entry.status === "read" && b.entry.finishedAt && b.entry.finishedAt.startsWith(year)
-  ).length;
+  $("year-count").textContent = booksReadIn(year).length;
+  renderYearOverview();
+}
+
+let yearOpen = false;
+
+// Bücher, die im angegebenen Jahr beendet wurden (neueste zuerst)
+function booksReadIn(year) {
+  return myLibrary
+    .filter((b) => b.entry.status === "read" && b.entry.finishedAt && b.entry.finishedAt.startsWith(year))
+    .sort((a, b) => b.entry.finishedAt.localeCompare(a.entry.finishedAt));
+}
+
+function formatDate(iso) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function readingPeriod(entry) {
+  if (!entry.finishedAt) return "";
+  if (!entry.startedAt) return `Beendet am ${formatDate(entry.finishedAt)}`;
+  const days = Math.round(
+    (new Date(entry.finishedAt) - new Date(entry.startedAt)) / 86400000
+  ) + 1;
+  const dur = days > 0 ? ` (${days} ${days === 1 ? "Tag" : "Tage"})` : "";
+  return `${formatDate(entry.startedAt)} – ${formatDate(entry.finishedAt)}${dur}`;
+}
+
+function renderYearOverview() {
+  const box = $("year-overview");
+  $("tile-year").setAttribute("aria-expanded", String(yearOpen));
+  box.hidden = !yearOpen;
+  if (!yearOpen) return;
+
+  const year = String(new Date().getFullYear());
+  const books = booksReadIn(year);
+  if (!books.length) {
+    box.replaceChildren(
+      el("p", { className: "meta" }, `Noch kein Buch in ${year} beendet. Gezählt werden Bücher mit Status „Gelesen“ und Datum „Beendet am“.`)
+    );
+    return;
+  }
+  const rows = books.map((book) => {
+    const row = el("button", { className: "row", type: "button" });
+    const cover = el("div", { className: "row-cover" }, coverElement(book));
+    const info = el(
+      "div",
+      { className: "row-info" },
+      el("div", { className: "title" }, book.title),
+      el("div", { className: "author" }, book.authors.join(", ")),
+      el("div", { className: "meta" }, readingPeriod(book.entry)),
+      book.entry.rating ? el("div", { className: "meta" }, "★".repeat(book.entry.rating)) : ""
+    );
+    row.append(cover, info);
+    row.onclick = () => showDetail(book);
+    return row;
+  });
+  box.replaceChildren(el("h3", {}, `Gelesen ${year}: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`), ...rows);
 }
 
 $("tile-shelf").onclick = () => {
@@ -588,9 +660,8 @@ $("tile-shelf").onclick = () => {
   showTab("library");
 };
 $("tile-year").onclick = () => {
-  libView = "mine";
-  libList = "read";
-  showTab("library");
+  yearOpen = !yearOpen;
+  renderYearOverview();
 };
 
 // ---------- Verbindung ----------
