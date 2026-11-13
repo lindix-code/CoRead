@@ -750,6 +750,7 @@ const PRESETS = {
 $("lib-add").onclick = () => {
   const [, label] = LISTS.find(([key]) => key === libList);
   $("add-title").textContent = `Buch hinzufügen: ${label}`;
+  $("add-query").value = ""; // altes Suchwort nicht stehen lassen
   $("add-status").textContent = "";
   $("add-results").replaceChildren();
   $("add-dialog").showModal();
