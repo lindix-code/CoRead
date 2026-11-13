@@ -561,6 +561,7 @@ function showDetail(book, readOnly = false, preset = null) {
       coverSlot.firstElementChild.replaceWith(coverElement(book));
       uploadBtn.textContent = book.cover ? "Cover ändern" : "Cover hochladen";
       resetBtn.hidden = !customCover;
+      quickSave.hidden = false; // Speichern-Symbol oben einblenden
     };
     fileInput.onchange = async () => {
       const file = fileInput.files[0];
@@ -593,6 +594,22 @@ function showDetail(book, readOnly = false, preset = null) {
 
     const saveBtn = el("button", { className: "btn", type: "button" }, entry ? "Speichern" : "Zur Bibliothek");
     const msg = el("p", { role: "status", className: "meta" });
+
+    // Kleines Speichern-Symbol oben (nach Cover-Änderung), damit man nicht nach unten scrollen muss
+    const quickSave = el("button", { className: "quick-save", type: "button", hidden: true });
+    quickSave.setAttribute("aria-label", "Speichern");
+    quickSave.title = "Speichern";
+    quickSave.innerHTML =
+      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h8V3"/><rect x="7" y="13" width="10" height="8" rx="1"/></svg>';
+    quickSave.onclick = () => {
+      saveBtn.click();
+      // Hinweise (z. B. fehlendes Datum) auch oben anzeigen
+      const mirror = () => {
+        if (msg.textContent) coverMsg.textContent = msg.textContent;
+      };
+      mirror();
+      setTimeout(mirror, 1500);
+    };
     saveBtn.onclick = async () => {
       const status = $("f-status").value || null;
       const owned = $("f-owned").checked;
@@ -661,7 +678,7 @@ function showDetail(book, readOnly = false, preset = null) {
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, pagesField, chaptersField, ratingField, actions, msg);
+    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, pagesField, chaptersField, ratingField, actions, msg, quickSave);
   }
 
   $("detail-content").replaceChildren(content);

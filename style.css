@@ -532,3 +532,22 @@ header { flex-wrap: wrap; gap: 4px; }
   .hero.compact .progress-input .pages-total { width: 78px; min-width: 0; }
   .hero.compact .progress-input .btn { white-space: nowrap; }
 }
+
+/* Speichern-Symbol oben im Buch-Fenster (nach Cover-Änderung) */
+.quick-save {
+  position: absolute;
+  top: 8px;
+  right: 54px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: #6b3f2a;
+  color: #fff;
+  line-height: 0;
+  cursor: pointer;
+}
