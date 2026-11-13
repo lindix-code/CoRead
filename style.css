@@ -499,3 +499,9 @@ header { flex-wrap: wrap; gap: 4px; }
   .progress-input { justify-content: center; flex-wrap: wrap; }
   .hero.compact .progress-input { justify-content: flex-start; flex-wrap: nowrap; gap: 4px; }
 }
+
+/* Desktop: Eingabezeile unten, auf einer Höhe mit dem Cover-Ende */
+.hero { align-items: stretch; }
+.hero.compact { align-items: stretch; }
+.hero-info { display: flex; flex-direction: column; }
+.hero-info .progress-form { margin-top: auto; padding-top: 10px; }

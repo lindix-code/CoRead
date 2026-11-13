@@ -504,6 +504,7 @@ function showDetail(book, readOnly = false, preset = null) {
       startedField.hidden = !["reading", "read"].includes(st);
       finishedField.hidden = st !== "read";
       progressField.hidden = st !== "reading";
+      chaptersField.hidden = st !== "reading";
     };
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
@@ -514,6 +515,15 @@ function showDetail(book, readOnly = false, preset = null) {
     });
     if (book.pages) progress.max = String(book.pages);
     progressField.append(progress);
+    // Kapitelzahl kennt keine Datenquelle: optional selbst eintragen, dann gibt es den Fortschritt in Kapiteln
+    const chaptersField = el("label", { className: "field" }, "Anzahl Kapitel (optional, für Fortschritt in Kapiteln)");
+    const chaptersInput = el("input", {
+      id: "f-chapters",
+      type: "number",
+      min: "1",
+      value: entry && entry.chaptersTotal != null ? entry.chaptersTotal : "",
+    });
+    chaptersField.append(chaptersInput);
     const ratingField = selectField(
       "Bewertung",
       "f-rating",
@@ -597,6 +607,7 @@ function showDetail(book, readOnly = false, preset = null) {
           startedAt,
           finishedAt,
           customCover,
+          chaptersTotal: $("f-chapters").value !== "" ? Math.max(1, Math.round(Number($("f-chapters").value))) : null,
           progress: status === "reading" && $("f-progress").value !== "" ? Number($("f-progress").value) : null,
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
         });
@@ -635,7 +646,7 @@ function showDetail(book, readOnly = false, preset = null) {
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, ratingField, actions, msg);
+    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, chaptersField, ratingField, actions, msg);
   }
 
   $("detail-content").replaceChildren(content);
@@ -837,7 +848,7 @@ function lastProgressMode() {
 // Text und Prozentwert für die Anzeige, je nach gespeicherter Variante
 function progressInfo(book) {
   const e = book.entry;
-  const mode = e.progressMode || "page";
+  const mode = e.progressMode === "chapter" && !e.chaptersTotal ? "page" : e.progressMode || "page";
   if (mode === "chapter") {
     const ch = e.progressChapter || 0;
     if (e.chaptersTotal) {
@@ -866,12 +877,13 @@ function heroCard(book) {
   const progressText = el("div", { className: "progress-text" }, info.text);
 
   // Eingabe: Variante wählen (Seite / Kapitel / Prozent), Wert eintragen
+  // "Kapitel" gibt es nur, wenn die Kapitelzahl des Buchs bekannt ist (im Buch eingetragen)
+  const modes = PROGRESS_MODES.filter(([key]) => key !== "chapter" || e.chaptersTotal);
   let mode = e.progressMode || lastProgressMode();
+  if (!modes.some(([key]) => key === mode)) mode = "page";
   const input = el("input", { type: "number", min: "0", step: "1" });
-  const total = el("input", { type: "number", min: "1", step: "1", placeholder: "von" });
-  total.setAttribute("aria-label", "Anzahl Kapitel gesamt");
   const unit = el("span", { className: "progress-unit" });
-  const modeSelect = el("select", { className: "mode-select" }, ...PROGRESS_MODES.map(([key, label]) => el("option", { value: key }, label)));
+  const modeSelect = el("select", { className: "mode-select" }, ...modes.map(([key, label]) => el("option", { value: key }, label)));
   modeSelect.setAttribute("aria-label", "Fortschritt angeben in");
   modeSelect.onchange = () => {
     mode = modeSelect.value;
@@ -879,7 +891,6 @@ function heroCard(book) {
   };
   function renderForm() {
     modeSelect.value = mode;
-    total.hidden = mode !== "chapter";
     input.removeAttribute("max");
     if (mode === "page") {
       input.value = e.progress != null ? e.progress : "";
@@ -888,9 +899,9 @@ function heroCard(book) {
       unit.textContent = book.pages ? `/ ${book.pages}` : "";
     } else if (mode === "chapter") {
       input.value = e.progressChapter != null ? e.progressChapter : "";
-      total.value = e.chaptersTotal != null ? e.chaptersTotal : "";
+      input.max = String(e.chaptersTotal);
       input.setAttribute("aria-label", "Aktuelles Kapitel");
-      unit.textContent = "";
+      unit.textContent = `/ ${e.chaptersTotal}`;
     } else {
       input.value = e.progressPercent != null ? e.progressPercent : "";
       input.max = "100";
@@ -909,8 +920,7 @@ function heroCard(book) {
     if (mode === "page") {
       fields.progress = value;
     } else if (mode === "chapter") {
-      fields.progressChapter = value;
-      if (total.value !== "") fields.chaptersTotal = Math.max(1, Math.round(Number(total.value)));
+      fields.progressChapter = Math.min(value, e.chaptersTotal);
     } else {
       fields.progressPercent = Math.min(100, value);
       if (book.pages) fields.progress = Math.round((fields.progressPercent / 100) * book.pages); // Seitenzahl mitführen
@@ -939,7 +949,7 @@ function heroCard(book) {
   toggle.onclick = () => setHeroCompact(!heroCompact);
   const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, "Ich lese gerade"), toggle);
 
-  const form = el("div", { className: "progress-form" }, el("div", { className: "progress-input" }, modeSelect, input, total, unit, saveBtn));
+  const form = el("div", { className: "progress-form" }, el("div", { className: "progress-input" }, modeSelect, input, unit, saveBtn));
 
   // Cover antippen öffnet die Details
   const cover = el("div", { className: "hero-cover tappable" }, coverElement(book));
