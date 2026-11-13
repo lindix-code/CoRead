@@ -577,6 +577,7 @@ function showDetail(book, readOnly = false, preset = null) {
       }
       saveBtn.disabled = true;
       try {
+        const newRating = $("f-rating").value === "" ? null : Number($("f-rating").value);
         await saveEntry(book, {
           status,
           owned,
@@ -587,6 +588,10 @@ function showDetail(book, readOnly = false, preset = null) {
           progress: status === "reading" && $("f-progress").value !== "" ? Number($("f-progress").value) : null,
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
         });
+        // Bewertung geändert: Sterne in automatisierten Pinnwand-Beiträgen zu diesem Buch angleichen
+        if (entry && (entry.rating || null) !== newRating) {
+          await sb.from("posts").update({ rating: newRating }).eq("user_id", me.id).eq("book_id", book.id).eq("auto", true);
+        }
         await reloadMyLibrary();
         $("detail").close();
         $("add-dialog").close();
@@ -1171,7 +1176,8 @@ function postCard(post, urls) {
     };
     const edit = el("button", { className: "btn secondary small", type: "button" }, "Bearbeiten");
     edit.onclick = () => openEditPost(post);
-    card.append(el("div", { className: "actions" }, edit, del));
+    // Automatisierte Beiträge nur löschen; ihre Sterne folgen der Bewertung in der Bibliothek
+    card.append(el("div", { className: "actions" }, ...(post.auto ? [del] : [edit, del])));
   }
   return card;
 }
