@@ -351,6 +351,67 @@ function selectField(label, id, options, value) {
   return el("label", { className: "field" }, label, select);
 }
 
+// Datumsfeld zum Tippen (TT.MM.JJJJ, Zahlentastatur am Handy) plus Kalender-Auswahl
+function makeDateField(iso) {
+  const text = el("input", {
+    type: "text",
+    inputMode: "numeric",
+    placeholder: "TT.MM.JJJJ",
+    maxLength: 10,
+    autocomplete: "off",
+    value: iso ? formatDate(iso) : "",
+  });
+  text.setAttribute("aria-label", "Datum als TT.MM.JJJJ");
+
+  // Punkte beim Tippen automatisch einfügen: 14032023 -> 14.03.2023
+  text.oninput = () => {
+    const d = text.value.replace(/\D/g, "").slice(0, 8);
+    let out = d.slice(0, 2);
+    if (d.length > 2) out += "." + d.slice(2, 4);
+    if (d.length > 4) out += "." + d.slice(4);
+    text.value = out;
+  };
+
+  // Kalender: verstecktes Datumsfeld, dessen Auswahl ins Textfeld übernommen wird
+  const picker = el("input", { type: "date", className: "date-native", tabIndex: -1, value: iso || "" });
+  picker.setAttribute("aria-hidden", "true");
+  picker.onchange = () => {
+    if (picker.value) text.value = formatDate(picker.value);
+  };
+  const calBtn = el("button", { className: "btn secondary small", type: "button" }, "Kalender");
+  calBtn.setAttribute("aria-label", "Kalender öffnen");
+  calBtn.onclick = () => {
+    const parsed = parse();
+    if (parsed.value) picker.value = parsed.value;
+    try {
+      picker.showPicker();
+    } catch {
+      picker.focus();
+      picker.click();
+    }
+  };
+
+  function parse() {
+    const t = text.value.trim();
+    if (!t) return { value: null, bad: false };
+    const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(t);
+    if (!m) return { value: null, bad: true };
+    const [day, month, year] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    const date = new Date(year, month - 1, day);
+    const valid =
+      date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day && year >= 1900 && year <= 2100;
+    if (!valid) return { value: null, bad: true };
+    const pad = (n) => String(n).padStart(2, "0");
+    return { value: `${year}-${pad(month)}-${pad(day)}`, bad: false };
+  }
+
+  return {
+    root: el("div", { className: "date-wrap" }, text, calBtn, picker),
+    value: () => parse().value,
+    bad: () => parse().bad,
+  };
+}
+
 // preset: Vorbelegung für neue Einträge (kommt vom "+"-Button der jeweiligen Liste)
 function showDetail(book, readOnly = false, preset = null) {
   // Falls das Buch schon in meiner Bibliothek ist, den gespeicherten Stand zeigen
@@ -406,10 +467,10 @@ function showDetail(book, readOnly = false, preset = null) {
     );
     const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: entry ? !!entry.owned : !!(preset && preset.owned) });
     const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal (gekauft)");
-    const startedInput = el("input", { type: "date", value: (entry && entry.startedAt) || "" });
-    const finishedInput = el("input", { type: "date", value: (entry && entry.finishedAt) || "" });
-    const startedField = el("label", { className: "field" }, "Begonnen am", startedInput);
-    const finishedField = el("label", { className: "field" }, "Beendet am", finishedInput);
+    const startedDate = makeDateField(entry && entry.startedAt);
+    const finishedDate = makeDateField(entry && entry.finishedAt);
+    const startedField = el("div", { className: "field" }, "Begonnen am", startedDate.root);
+    const finishedField = el("div", { className: "field" }, "Beendet am", finishedDate.root);
     const statusSelect = statusField.querySelector("select");
     const updateDateFields = () => {
       const st = statusSelect.value;
@@ -489,15 +550,12 @@ function showDetail(book, readOnly = false, preset = null) {
         return;
       }
       // Unvollständig eingegebene Daten nicht stillschweigend durch "heute" ersetzen
-      if (
-        (!startedField.hidden && startedInput.validity.badInput) ||
-        (!finishedField.hidden && finishedInput.validity.badInput)
-      ) {
-        msg.textContent = "Bitte gib das Datum vollständig ein (Tag, Monat und Jahr) oder lösche es ganz.";
+      if ((!startedField.hidden && startedDate.bad()) || (!finishedField.hidden && finishedDate.bad())) {
+        msg.textContent = "Bitte gib das Datum als TT.MM.JJJJ ein (z. B. 14.03.2023) oder lösche es ganz.";
         return;
       }
-      const startedAt = !startedField.hidden ? startedInput.value || null : null;
-      const finishedAt = !finishedField.hidden ? finishedInput.value || null : null;
+      const startedAt = !startedField.hidden ? startedDate.value() : null;
+      const finishedAt = !finishedField.hidden ? finishedDate.value() : null;
       if (startedAt && finishedAt && finishedAt < startedAt) {
         msg.textContent = "Das Enddatum liegt vor dem Startdatum.";
         return;

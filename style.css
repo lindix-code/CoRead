@@ -377,3 +377,9 @@ header { flex-wrap: wrap; gap: 4px; }
 .auto-text { margin: 10px 0 0; line-height: 1.4; }
 
 .review-title { margin: 4px 0 2px; font-size: 1.1rem; }
+
+/* Datumsfeld: Tastatur + Kalender */
+.date-wrap { position: relative; display: flex; gap: 8px; align-items: stretch; }
+.date-wrap input[type="text"] { flex: 1; min-width: 0; }
+.date-wrap .btn { padding: 0 12px; }
+.date-native { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
