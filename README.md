@@ -42,3 +42,18 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - [ ] 8. Wöchentlicher automatischer Aufruf (GitHub Action), damit das kostenlose Supabase-Projekt nicht pausiert
 - [x] Glöckchen mit Zähler für neue Pinnwand-Beiträge der anderen (Migration 009)
 - [ ] 9. Push-Benachrichtigung "Neuer Beitrag auf der Pinnwand" (App auf dem iPhone-Home-Bildschirm installieren, Web-Push mit Service Worker, Supabase Edge Function + Datenbank-Webhook, geheimer VAPID-Schlüssel nur als Supabase-Secret)
+
+### Ideen für später (gesammelt, noch nicht eingeplant)
+
+- [ ] 10. Aktuelles Buch auf der Startseite größer/kleiner stellen können
+- [ ] 11. Profil: anlegen, Passwort ändern, Farben ändern usw.
+- [ ] 12. Neuer Reiter "BookClub"
+  - [ ] 12.1 Meilensteine, einzeln und gemeinsam anlegen
+  - [ ] 12.2 Badges, die gemeinsam erworben werden
+  - [ ] 12.3 Buddy Read: Vorschlag machen, ein Buch parallel gemeinsam zu lesen, inkl. Kommentar-Funktion
+- [ ] 13. Zitate hinterlegen oder markieren
+- [ ] 14. Seitenanzahl zusammenzählen (einzeln und gemeinsam)
+- [ ] 15. Liste mit ausgeliehenen Büchern als Erinnerung (evtl. im Profil)
+- [ ] 16. Liste mit absoluten Lieblingsbüchern aller Zeiten
+- [ ] 17. Klare Buchempfehlung für die andere Person
+
