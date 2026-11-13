@@ -114,6 +114,7 @@ create table public.library_entries (
   owned boolean not null default false,                       -- steht im Bücherregal
   progress_page int check (progress_page >= 0),
   rating smallint check (rating between 1 and 5),
+  started_at date,                                            -- Begonnen am
   finished_at date,                                           -- Lesedatum (für den Jahres-Tracker)
   added_at timestamptz not null default now(),
   unique (user_id, book_id)
