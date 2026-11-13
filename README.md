@@ -58,3 +58,4 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - [ ] 17. Klare Buchempfehlung für die andere Person
 
 - [ ] 18. Inspiration anbieten, wenn gerade kein Buch gelesen wird (z. B. auf der Startseite statt "Du liest gerade kein Buch")
+- [ ] 19. Neuerscheinungen, Buchtipps oder die Spiegel-Bestsellerliste einfließen lassen (passt zu Punkt 18, Inspiration)
