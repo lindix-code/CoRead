@@ -991,7 +991,10 @@ function renderHome() {
   if (!reading.length) {
     homeBookId = null;
     const searchBtn = el("button", { className: "btn", type: "button" }, "Buch suchen");
-    searchBtn.onclick = () => $("query").focus();
+    searchBtn.onclick = () => {
+      showTab("library");
+      $("lib-add").click(); // Buch hinzufügen über das "+"
+    };
     hero.replaceChildren(
       el("div", { className: "hero empty" }, el("p", {}, "Du liest gerade kein Buch."), searchBtn)
     );
@@ -1765,22 +1768,9 @@ $("lib-friend").onclick = () => {
 };
 $("close").onclick = () => $("detail").close();
 
-$("search-form").onsubmit = async (event) => {
-  event.preventDefault();
-  $("status").textContent = "Suche läuft …";
-  $("results").replaceChildren();
-  try {
-    const books = await searchBooks($("query").value, $("lang").value);
-    $("status").textContent = books.length ? `${books.length} Treffer` : "Keine Treffer.";
-    renderGrid($("results"), books);
-  } catch (err) {
-    $("status").textContent = err.message;
-  }
-};
-
 // Beim Laden und Neuladen alle Suchfelder leeren (der Browser stellt sonst alte Eingaben wieder her)
 function clearSearchFields() {
-  for (const id of ["search-form", "add-form"]) $(id).reset();
+  $("add-form").reset();
   $("lib-search").value = "";
   $("lib-sort").value = "added";
   libQuery = "";
