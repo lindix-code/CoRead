@@ -115,6 +115,10 @@ create table public.library_entries (
   audiobook boolean not null default false,                   -- Hörbuch
   owned boolean not null default false,                       -- steht im Bücherregal
   progress_page int check (progress_page >= 0),
+  progress_mode text,                                         -- 'page' | 'chapter' | 'percent'
+  progress_chapter int,
+  chapters_total int,
+  progress_percent int,
   rating smallint check (rating between 1 and 5),
   custom_cover text,                                          -- eigenes Cover (URL im Storage)
   started_at date,                                            -- Begonnen am
