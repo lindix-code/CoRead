@@ -440,3 +440,12 @@ header { flex-wrap: wrap; gap: 4px; }
   line-height: 18px;
   text-align: center;
 }
+
+/* Buch hinzufügen am Handy: Suchfeld auf voller Breite, Sprache und Button darunter */
+@media (max-width: 600px) {
+  #add-dialog { width: 100vw; max-width: 100vw; padding: 16px; }
+  #add-form { flex-wrap: wrap; }
+  #add-query { flex: 1 1 100%; font-size: 1.1rem; padding: 12px 14px; }
+  #add-lang { flex: 1 1 0; min-width: 0; }
+  #add-form button[type="submit"] { flex: 1 1 0; }
+}
