@@ -880,8 +880,6 @@ function renderHome() {
 
   const owned = myLibrary.filter((b) => b.entry.owned).length;
   $("shelf-count").textContent = owned;
-  $("shelf-sub").textContent =
-    myLibrary.length === 1 ? "1 Buch insgesamt eingetragen" : `${myLibrary.length} Bücher insgesamt eingetragen`;
 
   const year = String(new Date().getFullYear());
   $("year-label").textContent = `Gelesen ${year}`;
@@ -896,7 +894,7 @@ function stackBooks() {
   return myLibrary.filter(isUnread);
 }
 
-let yearOpen = false;
+let yearOpen = true; // Übersicht standardmäßig offen
 
 // Bücher, die im angegebenen Jahr beendet wurden (neueste zuerst)
 function booksReadIn(year) {
@@ -934,7 +932,6 @@ function overviewYears() {
     if (b.entry.status === "read" && b.entry.finishedAt) years.add(b.entry.finishedAt.slice(0, 4));
   }
   const list = [...years].sort().reverse();
-  if (booksReadIn("none").length) list.push("none"); // gelesene Bücher ohne Datum
   return list;
 }
 
@@ -988,7 +985,6 @@ function renderYearOverview() {
   });
   box.replaceChildren(
     filter,
-    el("h3", {}, `Gelesen ${yearLabel(overviewYear)}: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`),
     ...rows
   );
 }
