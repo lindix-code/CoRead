@@ -40,3 +40,5 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - [ ] 7. Optional: ISBN-Barcode-Scan mit der Handykamera
 - [x] Pinnwand: Blogeinträge mit Fotos und optionalem Buch
 - [ ] 8. Wöchentlicher automatischer Aufruf (GitHub Action), damit das kostenlose Supabase-Projekt nicht pausiert
+- [x] Glöckchen mit Zähler für neue Pinnwand-Beiträge der anderen (Migration 009)
+- [ ] 9. Push-Benachrichtigung "Neuer Beitrag auf der Pinnwand" (App auf dem iPhone-Home-Bildschirm installieren, Web-Push mit Service Worker, Supabase Edge Function + Datenbank-Webhook, geheimer VAPID-Schlüssel nur als Supabase-Secret)
