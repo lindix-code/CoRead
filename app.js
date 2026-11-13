@@ -1049,6 +1049,7 @@ async function loadFeed() {
     for (const item of signed || []) if (item.signedUrl) urls[item.path] = item.signedUrl;
   }
 
+  if (posts.length) markFeedSeen(posts[0].created_at);
   $("feed-status").textContent = posts.length ? "" : "Noch keine Einträge. Schreib den ersten!";
   $("feed").replaceChildren(...posts.map((p) => postCard(p, urls)));
   $("feed-more").hidden = !hasMore;
@@ -1529,6 +1530,7 @@ async function onSession(session) {
     me = null;
     friend = null;
     myLibrary = [];
+    $("bell").hidden = true;
     for (const id of ["view-home", "view-search", "view-library", "view-feed", "view-friend"]) $(id).hidden = true;
     return;
   }
@@ -1540,6 +1542,7 @@ async function onSession(session) {
     await loadFriend();
     await reloadMyLibrary();
     renderFriendPanel();
+    refreshBell();
     showTab("home");
   } catch (err) {
     $("view-auth").hidden = false;
@@ -1548,6 +1551,45 @@ async function onSession(session) {
 }
 
 // ---------- Bedienung ----------
+
+// ---------- Glöckchen: neue Beiträge der Freundin ----------
+
+function setBell(count) {
+  const badge = $("bell-badge");
+  badge.hidden = count < 1;
+  badge.textContent = count > 9 ? "9+" : String(count);
+  $("bell").setAttribute("aria-label", count ? `${count} neue Beiträge auf der Pinnwand` : "Pinnwand");
+}
+
+async function refreshBell() {
+  const bell = $("bell");
+  // ohne Migration 009 (Spalte fehlt) bleibt das Glöckchen unsichtbar
+  if (!me || !me.feed_seen_at) {
+    bell.hidden = true;
+    return;
+  }
+  bell.hidden = false;
+  const { count, error } = await sb
+    .from("posts")
+    .select("id", { count: "exact", head: true })
+    .neq("user_id", me.id)
+    .gt("created_at", me.feed_seen_at);
+  if (!error) setBell(count || 0);
+}
+
+// Pinnwand wurde angesehen: alles bis zum neuesten Beitrag gilt als gelesen
+async function markFeedSeen(newestIso) {
+  if (!me || !me.feed_seen_at || !newestIso || newestIso <= me.feed_seen_at) return;
+  me.feed_seen_at = newestIso;
+  setBell(0);
+  await sb.from("profiles").update({ feed_seen_at: newestIso }).eq("id", me.id);
+}
+
+$("bell").onclick = () => showTab("feed");
+setInterval(refreshBell, 60000);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) refreshBell();
+});
 
 function showTab(name) {
   for (const n of ["home", "search", "library", "feed", "friend"]) {

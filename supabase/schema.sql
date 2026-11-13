@@ -11,7 +11,8 @@ create table public.profiles (
   display_name text not null default 'Leseratte',
   invite_code text not null unique
     default upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8)),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  feed_seen_at timestamptz not null default now()
 );
 
 -- Beim Registrieren automatisch ein Profil anlegen
