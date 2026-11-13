@@ -141,3 +141,50 @@ header { flex-wrap: wrap; gap: 4px; }
 .subtabs .btn { padding: 8px 12px; font-size: 0.9rem; }
 .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.95rem; }
 .check input { width: 18px; height: 18px; }
+
+/* Startseite */
+[hidden] { display: none !important; }
+.hero {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+.hero.empty { flex-direction: column; align-items: flex-start; color: #7a6e65; }
+.hero-cover { width: min(42vw, 200px); flex-shrink: 0; }
+.hero-cover img, .hero-cover .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; }
+.hero-info { flex: 1; min-width: 0; }
+.hero-info h2 { margin: 2px 0 4px; font-size: 1.4rem; }
+.hero-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: #7a6e65; }
+.bar { height: 14px; background: #e7ddd2; border-radius: 7px; overflow: hidden; margin-top: 16px; }
+.bar-fill { height: 100%; background: #6b3f2a; border-radius: 7px; transition: width 0.3s; }
+.progress-text { font-size: 0.9rem; color: #5d524b; margin-top: 6px; }
+.hero-info .actions input { width: 90px; padding: 8px; font-size: 1rem; border: 1px solid #cbbfb4; border-radius: 8px; }
+.hero-info .actions .btn { padding: 8px 12px; font-size: 0.9rem; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  background: #fff;
+  border: 0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.tile-label { font-size: 0.85rem; color: #7a6e65; }
+.tile-number { font-size: 2.6rem; font-weight: 700; color: #6b3f2a; line-height: 1.1; }
+.tile-sub { font-size: 0.8rem; color: #7a6e65; }
+@media (max-width: 520px) {
+  .hero { flex-direction: column; align-items: center; text-align: center; }
+  .hero-info { width: 100%; }
+  .hero-info .actions { justify-content: center; flex-wrap: wrap; }
+}

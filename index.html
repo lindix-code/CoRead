@@ -10,7 +10,8 @@
   <header>
     <h1>CoRead</h1>
     <nav id="nav" hidden>
-      <button id="tab-search" class="tab active">Suche</button>
+      <button id="tab-home" class="tab active">Start</button>
+      <button id="tab-search" class="tab">Suche</button>
       <button id="tab-library" class="tab">Bibliothek</button>
       <button id="tab-friend" class="tab">Freundin</button>
     </nav>
@@ -31,6 +32,23 @@
         </div>
         <p id="auth-status" role="status"></p>
       </form>
+    </section>
+
+    <!-- Startseite -->
+    <section id="view-home" hidden>
+      <div id="home-hero"></div>
+      <div class="tiles">
+        <button id="tile-shelf" class="tile" type="button">
+          <span class="tile-label">Mein Bücherregal</span>
+          <span class="tile-number" id="shelf-count">0</span>
+          <span class="tile-sub" id="shelf-sub"></span>
+        </button>
+        <button id="tile-year" class="tile" type="button">
+          <span class="tile-label" id="year-label">Gelesen</span>
+          <span class="tile-number" id="year-count">0</span>
+          <span class="tile-sub">Bücher in diesem Jahr</span>
+        </button>
+      </div>
     </section>
 
     <!-- Suche -->

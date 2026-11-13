@@ -179,13 +179,19 @@ function bookToDb(book) {
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, owned, progress_page, rating, books(*)")
+    .select("status, owned, finished_at, progress_page, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
   return data.map((r) => ({
     ...dbToBook(r.books),
-    entry: { status: r.status, owned: r.owned, progress: r.progress_page, rating: r.rating },
+    entry: {
+      status: r.status,
+      owned: r.owned,
+      finishedAt: r.finished_at,
+      progress: r.progress_page,
+      rating: r.rating,
+    },
   }));
 }
 
@@ -202,6 +208,7 @@ async function saveEntry(book, entry) {
       book_id: book.id,
       status: entry.status,
       owned: entry.owned,
+      finished_at: entry.finishedAt,
       progress_page: entry.progress,
       rating: entry.rating,
     },
@@ -353,6 +360,17 @@ function showDetail(book, readOnly = false) {
     );
     const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: !!(entry && entry.owned) });
     const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal");
+    const finishedField = el(
+      "label",
+      { className: "field" },
+      "Gelesen am",
+      el("input", { id: "f-finished", type: "date", value: (entry && entry.finishedAt) || "" })
+    );
+    const statusSelect = statusField.querySelector("select");
+    finishedField.hidden = statusSelect.value !== "read";
+    statusSelect.onchange = () => {
+      finishedField.hidden = statusSelect.value !== "read";
+    };
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
       id: "f-progress",
@@ -383,12 +401,14 @@ function showDetail(book, readOnly = false) {
         await saveEntry(book, {
           status,
           owned,
+          finishedAt: status === "read" ? $("f-finished").value || todayLocal() : null,
           progress: $("f-progress").value === "" ? null : Number($("f-progress").value),
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
         });
         await reloadMyLibrary();
         $("detail").close();
         renderLibrary();
+        renderHome();
       } catch (err) {
         msg.textContent = "Speichern hat nicht geklappt: " + err.message;
         saveBtn.disabled = false;
@@ -404,13 +424,14 @@ function showDetail(book, readOnly = false) {
           await reloadMyLibrary();
           $("detail").close();
           renderLibrary();
+          renderHome();
         } catch (err) {
           msg.textContent = "Entfernen hat nicht geklappt: " + err.message;
         }
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, ownedField, progressField, ratingField, actions, msg);
+    content.append(statusField, finishedField, ownedField, progressField, ratingField, actions, msg);
   }
 
   $("detail-content").replaceChildren(content);
@@ -464,6 +485,113 @@ function renderLists(books, readOnly) {
     : `${who}Noch nichts in „${label}“.`;
   renderGrid($("library"), shown, readOnly);
 }
+
+// ---------- Startseite ----------
+
+let homeBookId = null;
+
+function todayLocal() {
+  return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function renderHome() {
+  const reading = myLibrary.filter((b) => b.entry.status === "reading");
+  const hero = $("home-hero");
+
+  if (!reading.length) {
+    const searchBtn = el("button", { className: "btn", type: "button" }, "Buch suchen");
+    searchBtn.onclick = () => showTab("search");
+    hero.replaceChildren(
+      el("div", { className: "hero empty" }, el("p", {}, "Du liest gerade kein Buch."), searchBtn)
+    );
+  } else {
+    const book = reading.find((b) => b.id === homeBookId) || reading[0];
+    homeBookId = book.id;
+    const page = book.entry.progress || 0;
+    const pct = book.pages ? Math.min(100, Math.round((page / book.pages) * 100)) : null;
+
+    const fill = el("div", { className: "bar-fill" });
+    fill.style.width = (pct || 0) + "%";
+    const bar = el("div", { className: "bar" }, fill);
+    const progressText = el(
+      "div",
+      { className: "progress-text" },
+      pct != null ? `Seite ${page} von ${book.pages} · ${pct} %` : `Seite ${page}`
+    );
+
+    const input = el("input", { type: "number", min: "0", value: page, "aria-label": "Aktuelle Seite" });
+    if (book.pages) input.max = String(book.pages);
+    const saveBtn = el("button", { className: "btn", type: "button" }, "Seite speichern");
+    const detailBtn = el("button", { className: "btn secondary", type: "button" }, "Details");
+    const msg = el("div", { className: "meta", role: "status" });
+    saveBtn.onclick = async () => {
+      if (input.value === "") return;
+      saveBtn.disabled = true;
+      try {
+        await saveEntry(book, { ...book.entry, progress: Number(input.value) });
+        await reloadMyLibrary();
+        renderHome();
+      } catch (err) {
+        msg.textContent = "Speichern hat nicht geklappt: " + err.message;
+        saveBtn.disabled = false;
+      }
+    };
+    detailBtn.onclick = () => showDetail(book);
+
+    const info = el(
+      "div",
+      { className: "hero-info" },
+      el("div", { className: "hero-label" }, "Ich lese gerade"),
+      el("h2", {}, book.title),
+      el("div", { className: "author" }, book.authors.join(", ")),
+      bar,
+      progressText,
+      el("div", { className: "actions" }, input, saveBtn, detailBtn),
+      msg
+    );
+
+    const parts = [el("div", { className: "hero" }, el("div", { className: "hero-cover" }, coverElement(book)), info)];
+
+    if (reading.length > 1) {
+      const chips = reading.map((b) => {
+        const chip = el(
+          "button",
+          { className: b.id === book.id ? "btn" : "btn secondary", type: "button" },
+          b.title.length > 28 ? b.title.slice(0, 27) + "…" : b.title
+        );
+        chip.onclick = () => {
+          homeBookId = b.id;
+          renderHome();
+        };
+        return chip;
+      });
+      parts.push(el("div", { className: "actions subtabs" }, ...chips));
+    }
+    hero.replaceChildren(...parts);
+  }
+
+  const owned = myLibrary.filter((b) => b.entry.owned).length;
+  $("shelf-count").textContent = owned;
+  $("shelf-sub").textContent =
+    myLibrary.length === 1 ? "1 Buch insgesamt eingetragen" : `${myLibrary.length} Bücher insgesamt eingetragen`;
+
+  const year = String(new Date().getFullYear());
+  $("year-label").textContent = `Gelesen ${year}`;
+  $("year-count").textContent = myLibrary.filter(
+    (b) => b.entry.status === "read" && b.entry.finishedAt && b.entry.finishedAt.startsWith(year)
+  ).length;
+}
+
+$("tile-shelf").onclick = () => {
+  libView = "mine";
+  libList = "shelf";
+  showTab("library");
+};
+$("tile-year").onclick = () => {
+  libView = "mine";
+  libList = "read";
+  showTab("library");
+};
 
 // ---------- Verbindung ----------
 
@@ -536,7 +664,7 @@ async function onSession(session) {
     me = null;
     friend = null;
     myLibrary = [];
-    for (const id of ["view-search", "view-library", "view-friend"]) $(id).hidden = true;
+    for (const id of ["view-home", "view-search", "view-library", "view-friend"]) $(id).hidden = true;
     return;
   }
 
@@ -547,7 +675,7 @@ async function onSession(session) {
     await loadFriend();
     await reloadMyLibrary();
     renderFriendPanel();
-    showTab("search");
+    showTab("home");
   } catch (err) {
     $("view-auth").hidden = false;
     authMessage("Konnte deine Daten nicht laden: " + err.message);
@@ -557,13 +685,15 @@ async function onSession(session) {
 // ---------- Bedienung ----------
 
 function showTab(name) {
-  for (const n of ["search", "library", "friend"]) {
+  for (const n of ["home", "search", "library", "friend"]) {
     $("view-" + n).hidden = n !== name;
     $("tab-" + n).classList.toggle("active", n === name);
   }
   if (name === "library") renderLibrary();
+  if (name === "home") renderHome();
 }
 
+$("tab-home").onclick = () => showTab("home");
 $("tab-search").onclick = () => showTab("search");
 $("tab-library").onclick = () => showTab("library");
 $("tab-friend").onclick = () => showTab("friend");
