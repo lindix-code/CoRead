@@ -407,10 +407,6 @@ function showDetail(book, readOnly = false) {
     const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal (gekauft)");
     const startedInput = el("input", { type: "date", value: (entry && entry.startedAt) || "" });
     const finishedInput = el("input", { type: "date", value: (entry && entry.finishedAt) || "" });
-    // Sobald jemand das Datum selbst anfasst (auch löscht), setzen wir nichts mehr automatisch
-    for (const input of [startedInput, finishedInput]) {
-      input.oninput = () => (input.dataset.touched = "1");
-    }
     const startedField = el("label", { className: "field" }, "Begonnen am", startedInput);
     const finishedField = el("label", { className: "field" }, "Beendet am", finishedInput);
     const statusSelect = statusField.querySelector("select");
@@ -419,9 +415,6 @@ function showDetail(book, readOnly = false) {
       startedField.hidden = !["reading", "read"].includes(st);
       finishedField.hidden = st !== "read";
       progressField.hidden = st !== "reading";
-      // Vorschlag "heute", solange das Feld leer und noch nicht selbst bearbeitet ist
-      if (st === "reading" && !startedInput.value && !startedInput.dataset.touched) startedInput.value = todayLocal();
-      if (st === "read" && !finishedInput.value && !finishedInput.dataset.touched) finishedInput.value = todayLocal();
     };
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
@@ -754,6 +747,7 @@ let yearOpen = false;
 
 // Bücher, die im angegebenen Jahr beendet wurden (neueste zuerst)
 function booksReadIn(year) {
+  if (year === "none") return myLibrary.filter((b) => b.entry.status === "read" && !b.entry.finishedAt);
   return myLibrary
     .filter((b) => b.entry.status === "read" && b.entry.finishedAt && b.entry.finishedAt.startsWith(year))
     .sort((a, b) => b.entry.finishedAt.localeCompare(a.entry.finishedAt));
@@ -786,8 +780,12 @@ function overviewYears() {
   for (const b of myLibrary) {
     if (b.entry.status === "read" && b.entry.finishedAt) years.add(b.entry.finishedAt.slice(0, 4));
   }
-  return [...years].sort().reverse();
+  const list = [...years].sort().reverse();
+  if (booksReadIn("none").length) list.push("none"); // gelesene Bücher ohne Datum
+  return list;
 }
+
+const yearLabel = (year) => (year === "none" ? "Ohne Datum" : year);
 
 function renderYearOverview() {
   const box = $("year-overview");
@@ -802,7 +800,7 @@ function renderYearOverview() {
       const chip = el(
         "button",
         { className: year === overviewYear ? "btn" : "btn secondary", type: "button" },
-        `${year} (${booksReadIn(year).length})`
+        `${yearLabel(year)} (${booksReadIn(year).length})`
       );
       chip.onclick = () => {
         overviewYear = year;
@@ -816,7 +814,7 @@ function renderYearOverview() {
   if (!books.length) {
     box.replaceChildren(
       filter,
-      el("p", { className: "meta" }, `Kein Buch in ${overviewYear} beendet. Gezählt werden Bücher mit Status „Gelesen“ und Datum „Beendet am“.`)
+      el("p", { className: "meta" }, `Kein Buch in ${yearLabel(overviewYear)} beendet.`)
     );
     return;
   }
@@ -837,7 +835,7 @@ function renderYearOverview() {
   });
   box.replaceChildren(
     filter,
-    el("h3", {}, `Gelesen ${overviewYear}: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`),
+    el("h3", {}, `Gelesen ${yearLabel(overviewYear)}: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`),
     ...rows
   );
 }
