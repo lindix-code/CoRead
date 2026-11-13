@@ -110,7 +110,8 @@ create table public.library_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles (id) on delete cascade default auth.uid(),
   book_id text not null references public.books (id),
-  status text not null default 'want' check (status in ('want', 'reading', 'read')),
+  status text check (status in ('want', 'reading', 'read')),  -- leer = nur im Regal
+  owned boolean not null default false,                       -- steht im Bücherregal
   progress_page int check (progress_page >= 0),
   rating smallint check (rating between 1 and 5),
   added_at timestamptz not null default now(),
