@@ -57,3 +57,4 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - [ ] 16. Liste mit absoluten Lieblingsbüchern aller Zeiten
 - [ ] 17. Klare Buchempfehlung für die andere Person
 
+- [ ] 18. Inspiration anbieten, wenn gerade kein Buch gelesen wird (z. B. auf der Startseite statt "Du liest gerade kein Buch")
