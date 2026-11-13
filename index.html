@@ -81,6 +81,14 @@
         <input id="lib-search" class="lib-search" type="search" placeholder="Bibliothek durchsuchen" autocomplete="off">
         <button id="lib-add" class="btn add-btn" type="button" aria-label="Buch hinzufügen" title="Buch hinzufügen">+</button>
       </div>
+      <label class="sort-row">Sortieren:
+        <select id="lib-sort">
+          <option value="added" selected>Zuletzt hinzugefügt</option>
+          <option value="title">Titel (A–Z)</option>
+          <option value="author">Autor:in (A–Z)</option>
+          <option value="rating">Bewertung (beste zuerst)</option>
+        </select>
+      </label>
       <div id="lib-lists" class="actions subtabs"></div>
       <p id="library-status" role="status"></p>
       <div id="library" class="grid"></div>
