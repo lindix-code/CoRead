@@ -12,6 +12,15 @@ let me = null; // eigenes Profil
 let friend = null; // Profil der Freundin (oder null)
 let myLibrary = []; // meine Bücher inkl. entry
 let libView = "mine"; // "mine" | "friend"
+let libList = "reading"; // aktive Unterliste in der Bibliothek
+
+// Unterlisten der Bibliothek: [Schlüssel, Name, Filter]
+const LISTS = [
+  ["shelf", "Mein Bücherregal", (b) => b.entry.owned],
+  ["reading", "Lese ich gerade", (b) => b.entry.status === "reading"],
+  ["read", "Abgeschlossen", (b) => b.entry.status === "read"],
+  ["want", "Möchte ich lesen", (b) => b.entry.status === "want"],
+];
 
 // ---------- Buchsuche ----------
 
@@ -170,13 +179,13 @@ function bookToDb(book) {
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, progress_page, rating, books(*)")
+    .select("status, owned, progress_page, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
   return data.map((r) => ({
     ...dbToBook(r.books),
-    entry: { status: r.status, progress: r.progress_page, rating: r.rating },
+    entry: { status: r.status, owned: r.owned, progress: r.progress_page, rating: r.rating },
   }));
 }
 
@@ -192,6 +201,7 @@ async function saveEntry(book, entry) {
       user_id: me.id,
       book_id: book.id,
       status: entry.status,
+      owned: entry.owned,
       progress_page: entry.progress,
       rating: entry.rating,
     },
@@ -248,12 +258,17 @@ function coverElement(book) {
 function entryLine(book) {
   const e = book.entry;
   if (!e) return "";
-  let text = STATUS[e.status];
-  if (e.status === "reading" && e.progress != null) {
-    text += book.pages ? ` (S. ${e.progress}/${book.pages})` : ` (S. ${e.progress})`;
+  const parts = [];
+  if (e.status) {
+    let text = STATUS[e.status];
+    if (e.status === "reading" && e.progress != null) {
+      text += book.pages ? ` (S. ${e.progress}/${book.pages})` : ` (S. ${e.progress})`;
+    }
+    parts.push(text);
   }
-  if (e.rating) text += " · " + "★".repeat(e.rating);
-  return text;
+  if (e.owned) parts.push("Im Regal");
+  if (e.rating) parts.push("★".repeat(e.rating));
+  return parts.join(" · ");
 }
 
 function bookCard(book, readOnly) {
@@ -333,9 +348,11 @@ function showDetail(book, readOnly = false) {
     const statusField = selectField(
       "Status",
       "f-status",
-      Object.entries(STATUS),
+      [["", "Keine Leseliste"], ...Object.entries(STATUS)],
       entry ? entry.status : "want"
     );
+    const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: !!(entry && entry.owned) });
+    const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal");
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
       id: "f-progress",
@@ -355,10 +372,17 @@ function showDetail(book, readOnly = false) {
     const saveBtn = el("button", { className: "btn", type: "button" }, entry ? "Speichern" : "Zur Bibliothek");
     const msg = el("p", { role: "status", className: "meta" });
     saveBtn.onclick = async () => {
+      const status = $("f-status").value || null;
+      const owned = $("f-owned").checked;
+      if (!status && !owned) {
+        msg.textContent = "Wähle eine Leseliste oder setze den Haken für das Bücherregal.";
+        return;
+      }
       saveBtn.disabled = true;
       try {
         await saveEntry(book, {
-          status: $("f-status").value,
+          status,
+          owned,
           progress: $("f-progress").value === "" ? null : Number($("f-progress").value),
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
         });
@@ -386,7 +410,7 @@ function showDetail(book, readOnly = false) {
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, progressField, ratingField, actions, msg);
+    content.append(statusField, ownedField, progressField, ratingField, actions, msg);
   }
 
   $("detail-content").replaceChildren(content);
@@ -402,22 +426,43 @@ async function renderLibrary() {
   if (friend) $("lib-friend").textContent = friend.display_name;
 
   if (libView === "mine") {
-    $("library-status").textContent = myLibrary.length
-      ? `${myLibrary.length} Buch/Bücher in deiner Bibliothek`
-      : "Noch keine Bücher. Suche eins und füge es hinzu.";
-    renderGrid($("library"), myLibrary, false);
+    renderLists(myLibrary, false);
   } else if (friend) {
+    $("lib-lists").replaceChildren();
+    $("library").replaceChildren();
     $("library-status").textContent = "Lade …";
     try {
-      const books = await fetchLibrary(friend.id);
-      $("library-status").textContent = books.length
-        ? `${books.length} Buch/Bücher bei ${friend.display_name}`
-        : `${friend.display_name} hat noch keine Bücher.`;
-      renderGrid($("library"), books, true);
+      renderLists(await fetchLibrary(friend.id), true);
     } catch (err) {
       $("library-status").textContent = "Konnte die Bibliothek nicht laden.";
     }
   }
+}
+
+// Zeigt die Unterlisten (Regal, Lese ich gerade, Abgeschlossen, Möchte ich lesen)
+function renderLists(books, readOnly) {
+  const buttons = LISTS.map(([key, label, test]) => {
+    const count = books.filter(test).length;
+    const btn = el(
+      "button",
+      { className: key === libList ? "btn" : "btn secondary", type: "button" },
+      `${label} (${count})`
+    );
+    btn.onclick = () => {
+      libList = key;
+      renderLists(books, readOnly);
+    };
+    return btn;
+  });
+  $("lib-lists").replaceChildren(...buttons);
+
+  const [, label, test] = LISTS.find(([key]) => key === libList);
+  const shown = books.filter(test);
+  const who = readOnly && friend ? friend.display_name + ": " : "";
+  $("library-status").textContent = shown.length
+    ? `${who}${label}`
+    : `${who}Noch nichts in „${label}“.`;
+  renderGrid($("library"), shown, readOnly);
 }
 
 // ---------- Verbindung ----------

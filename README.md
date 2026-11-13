@@ -23,7 +23,7 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - Web-App (läuft auch auf dem Handy, später als PWA installierbar)
 - Reines HTML/CSS/JavaScript, keine Build-Tools nötig
 - Supabase für Login und Datenbank (Row Level Security: nur ihr zwei seht eure Daten)
-- Datenbank-Schema: `supabase/schema.sql` (einmalig im Supabase SQL Editor ausführen)
+- Datenbank-Schema: `supabase/schema.sql` (einmalig im Supabase SQL Editor ausführen; spätere Änderungen liegen in `supabase/migrations/`)
 
 ## Ausprobieren
 

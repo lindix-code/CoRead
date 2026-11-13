@@ -135,3 +135,9 @@ header { flex-wrap: wrap; gap: 4px; }
   border-radius: 8px;
   background: #fff;
 }
+
+/* Unterlisten der Bibliothek */
+.subtabs { flex-wrap: wrap; margin-top: 12px; }
+.subtabs .btn { padding: 8px 12px; font-size: 0.9rem; }
+.check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.95rem; }
+.check input { width: 18px; height: 18px; }
