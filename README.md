@@ -45,7 +45,7 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 
 ### Ideen für später (gesammelt, noch nicht eingeplant)
 
-- [ ] 10. Aktuelles Buch auf der Startseite größer/kleiner stellen können
+- [x] 10. Aktuelles Buch auf der Startseite größer/kleiner stellen können
 - [ ] 11. Profil: anlegen, Passwort ändern, Farben ändern usw.
 - [ ] 12. Neuer Reiter "BookClub"
   - [ ] 12.1 Meilensteine, einzeln und gemeinsam anlegen
