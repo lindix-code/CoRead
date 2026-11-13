@@ -505,3 +505,9 @@ header { flex-wrap: wrap; gap: 4px; }
 .hero.compact { align-items: stretch; }
 .hero-info { display: flex; flex-direction: column; }
 .hero-info .progress-form { margin-top: auto; padding-top: 10px; }
+
+/* Desktop: Cover kleiner, Eingabezeile schließt auf Höhe des Cover-Endes ab */
+@media (min-width: 521px) {
+  .hero .hero-cover { width: 150px; }
+  .hero.compact .hero-cover { width: 115px; }
+}
