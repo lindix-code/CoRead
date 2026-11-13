@@ -186,7 +186,7 @@ function bookToDb(book) {
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, owned, started_at, finished_at, custom_cover, progress_page, rating, books(*)")
+    .select("status, owned, audiobook, started_at, finished_at, custom_cover, progress_page, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
@@ -198,6 +198,7 @@ async function fetchLibrary(userId) {
       customCover: r.custom_cover,
       status: r.status,
       owned: r.owned,
+      audiobook: r.audiobook,
       startedAt: r.started_at,
       finishedAt: r.finished_at,
       progress: r.progress_page,
@@ -219,6 +220,7 @@ async function saveEntry(book, entry) {
       book_id: book.id,
       status: entry.status,
       owned: entry.owned,
+      audiobook: !!entry.audiobook,
       custom_cover: entry.customCover || null,
       started_at: entry.startedAt,
       finished_at: entry.finishedAt,
@@ -319,6 +321,15 @@ function entryLine(book) {
   return parts.join(" · ");
 }
 
+// Kleines Kopfhörer-Symbol für Hörbücher
+function audioBadge(book) {
+  if (!book.entry || !book.entry.audiobook) return "";
+  const badge = el("span", { className: "badge-audio", title: "Hörbuch" }, "🎧");
+  badge.setAttribute("role", "img");
+  badge.setAttribute("aria-label", "Hörbuch");
+  return badge;
+}
+
 function bookCard(book, readOnly) {
   const card = el("button", { className: "card", type: "button" });
   card.append(
@@ -328,6 +339,7 @@ function bookCard(book, readOnly) {
   );
   const line = entryLine(book);
   if (line) card.append(el("div", { className: "meta" }, line));
+  card.append(audioBadge(book));
   card.onclick = () => showDetail(book, readOnly);
   return card;
 }
@@ -466,7 +478,9 @@ function showDetail(book, readOnly = false, preset = null) {
       entry ? entry.status : preset ? preset.status : "want"
     );
     const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: entry ? !!entry.owned : !!(preset && preset.owned) });
-    const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal (gekauft)");
+    const ownedField = el("label", { className: "check" }, ownedBox, " Bücherregal hinzufügen");
+    const audioBox = el("input", { id: "f-audio", type: "checkbox", checked: !!(entry && entry.audiobook) });
+    const audioField = el("label", { className: "check" }, audioBox, " Hörbuch");
     const startedDate = makeDateField(entry && entry.startedAt);
     const finishedDate = makeDateField(entry && entry.finishedAt);
     const startedField = el("div", { className: "field" }, "Begonnen am", startedDate.root);
@@ -565,6 +579,7 @@ function showDetail(book, readOnly = false, preset = null) {
         await saveEntry(book, {
           status,
           owned,
+          audiobook: $("f-audio").checked,
           startedAt,
           finishedAt,
           customCover,
@@ -602,7 +617,7 @@ function showDetail(book, readOnly = false, preset = null) {
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, startedField, finishedField, ownedField, progressField, ratingField, actions, msg);
+    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, ratingField, actions, msg);
   }
 
   $("detail-content").replaceChildren(content);
@@ -966,7 +981,7 @@ function renderYearOverview() {
       el("div", { className: "meta" }, readingPeriod(book.entry)),
       book.entry.rating ? el("div", { className: "meta" }, "★".repeat(book.entry.rating)) : ""
     );
-    row.append(cover, info);
+    row.append(cover, info, audioBadge(book));
     row.onclick = () => showDetail(book);
     return row;
   });

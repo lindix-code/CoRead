@@ -383,3 +383,22 @@ header { flex-wrap: wrap; gap: 4px; }
 .date-wrap input[type="text"] { flex: 1; min-width: 0; }
 .date-wrap .btn { padding: 0 12px; }
 .date-native { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+
+/* Hörbuch-Symbol */
+.card, .row { position: relative; }
+.badge-audio {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.row .badge-audio { top: 8px; right: 8px; }
