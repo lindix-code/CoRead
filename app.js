@@ -186,12 +186,14 @@ function bookToDb(book) {
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, owned, audiobook, started_at, finished_at, custom_cover, progress_page, progress_mode, progress_chapter, chapters_total, progress_percent, rating, books(*)")
+    .select("status, owned, audiobook, started_at, finished_at, custom_cover, progress_page, progress_mode, progress_chapter, chapters_total, progress_percent, pages_total, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
   return data.map((r) => ({
     ...dbToBook(r.books),
+    pages: r.pages_total || r.books.pages, // eigene Seitenzahl hat Vorrang
+    catalogPages: r.books.pages,
     cover: r.custom_cover || r.books.cover,
     originalCover: r.books.cover,
     entry: {
@@ -206,6 +208,7 @@ async function fetchLibrary(userId) {
       progressChapter: r.progress_chapter,
       chaptersTotal: r.chapters_total,
       progressPercent: r.progress_percent,
+      pagesTotal: r.pages_total,
       rating: r.rating,
     },
   }));
@@ -224,6 +227,7 @@ async function saveEntry(book, entry) {
   if (entry.progressChapter !== undefined) extra.progress_chapter = entry.progressChapter;
   if (entry.chaptersTotal !== undefined) extra.chapters_total = entry.chaptersTotal;
   if (entry.progressPercent !== undefined) extra.progress_percent = entry.progressPercent;
+  if (entry.pagesTotal !== undefined) extra.pages_total = entry.pagesTotal;
 
   const { error } = await sb.from("library_entries").upsert(
     {
@@ -505,6 +509,7 @@ function showDetail(book, readOnly = false, preset = null) {
       finishedField.hidden = st !== "read";
       progressField.hidden = st !== "reading";
       chaptersField.hidden = st !== "reading";
+      pagesField.hidden = st !== "reading";
     };
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
@@ -524,6 +529,15 @@ function showDetail(book, readOnly = false, preset = null) {
       value: entry && entry.chaptersTotal != null ? entry.chaptersTotal : "",
     });
     chaptersField.append(chaptersInput);
+    const pagesField = el("label", { className: "field" }, "Seitenzahl des Buchs (optional, falls oben keine bekannt ist)");
+    const pagesInput = el("input", {
+      id: "f-pages",
+      type: "number",
+      min: "1",
+      value: entry && entry.pagesTotal != null ? entry.pagesTotal : "",
+      placeholder: book.catalogPages || book.pages || "",
+    });
+    pagesField.append(pagesInput);
     const ratingField = selectField(
       "Bewertung",
       "f-rating",
@@ -607,6 +621,7 @@ function showDetail(book, readOnly = false, preset = null) {
           startedAt,
           finishedAt,
           customCover,
+          pagesTotal: $("f-pages").value !== "" ? Math.max(1, Math.round(Number($("f-pages").value))) : null,
           chaptersTotal: $("f-chapters").value !== "" ? Math.max(1, Math.round(Number($("f-chapters").value))) : null,
           progress: status === "reading" && $("f-progress").value !== "" ? Number($("f-progress").value) : null,
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
@@ -646,7 +661,7 @@ function showDetail(book, readOnly = false, preset = null) {
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, chaptersField, ratingField, actions, msg);
+    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, pagesField, chaptersField, ratingField, actions, msg);
   }
 
   $("detail-content").replaceChildren(content);
@@ -883,6 +898,9 @@ function heroCard(book) {
   if (!modes.some(([key]) => key === mode)) mode = "page";
   const input = el("input", { type: "number", min: "0", step: "1" });
   const unit = el("span", { className: "progress-unit" });
+  // Ohne bekannte Seitenzahl kann kein Balken berechnet werden: Gesamtzahl hier eintragen
+  const pagesTotalInput = el("input", { type: "number", min: "1", step: "1", placeholder: "Seiten gesamt", className: "pages-total" });
+  pagesTotalInput.setAttribute("aria-label", "Seitenzahl des Buchs");
   const modeSelect = el("select", { className: "mode-select" }, ...modes.map(([key, label]) => el("option", { value: key }, label)));
   modeSelect.setAttribute("aria-label", "Fortschritt angeben in");
   modeSelect.onchange = () => {
@@ -891,6 +909,7 @@ function heroCard(book) {
   };
   function renderForm() {
     modeSelect.value = mode;
+    pagesTotalInput.hidden = !(mode === "page" && !book.pages);
     input.removeAttribute("max");
     if (mode === "page") {
       input.value = e.progress != null ? e.progress : "";
@@ -919,6 +938,7 @@ function heroCard(book) {
     const fields = { progressMode: mode };
     if (mode === "page") {
       fields.progress = value;
+      if (!book.pages && pagesTotalInput.value !== "") fields.pagesTotal = Math.max(1, Math.round(Number(pagesTotalInput.value)));
     } else if (mode === "chapter") {
       fields.progressChapter = Math.min(value, e.chaptersTotal);
     } else {
@@ -949,7 +969,7 @@ function heroCard(book) {
   toggle.onclick = () => setHeroCompact(!heroCompact);
   const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, "Ich lese gerade"), toggle);
 
-  const form = el("div", { className: "progress-form" }, el("div", { className: "progress-input" }, modeSelect, input, unit, saveBtn));
+  const form = el("div", { className: "progress-form" }, el("div", { className: "progress-input" }, modeSelect, input, unit, pagesTotalInput, saveBtn));
 
   // Cover antippen öffnet die Details
   const cover = el("div", { className: "hero-cover tappable" }, coverElement(book));

@@ -522,3 +522,7 @@ header { flex-wrap: wrap; gap: 4px; }
   .hero.compact .progress-input .btn { padding: 5px 8px; font-size: 0.78rem; }
   .hero.compact .progress-input input { width: 52px; }
 }
+
+.progress-input .pages-total { width: 120px; }
+.hero.compact .progress-input .pages-total { width: 90px; }
+@media (max-width: 520px) { .hero.compact .progress-input { flex-wrap: wrap; } }
