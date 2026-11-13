@@ -165,6 +165,21 @@
     </form>
   </dialog>
 
+  <dialog id="edit-post-dialog">
+    <button id="edit-post-close" class="close" aria-label="Schließen">×</button>
+    <h2>Eintrag bearbeiten</h2>
+    <form id="edit-post-form">
+      <input id="edit-post-title" type="text" maxlength="120" placeholder="Titel (optional)" autocomplete="off">
+      <textarea id="edit-post-body" rows="6" maxlength="5000" required></textarea>
+      <div id="edit-post-stars-wrap" hidden>
+        <div class="meta">Sterne</div>
+        <div id="edit-post-stars" class="stars"></div>
+      </div>
+      <p id="edit-post-status" role="status"></p>
+      <button id="edit-post-submit" type="submit">Speichern</button>
+    </form>
+  </dialog>
+
   <dialog id="add-dialog">
     <button id="add-close" class="close" aria-label="Schließen">×</button>
     <h2 id="add-title"></h2>

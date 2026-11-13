@@ -1169,7 +1169,9 @@ function postCard(post, urls) {
       }
       loadFeed();
     };
-    card.append(el("div", { className: "actions" }, del));
+    const edit = el("button", { className: "btn secondary small", type: "button" }, "Bearbeiten");
+    edit.onclick = () => openEditPost(post);
+    card.append(el("div", { className: "actions" }, edit, del));
   }
   return card;
 }
@@ -1266,6 +1268,62 @@ $("post-form").onsubmit = async (event) => {
     $("post-status").textContent = "Das hat nicht geklappt: " + err.message;
     $("post-submit").disabled = false;
   }
+};
+
+// ---------- Eintrag bearbeiten ----------
+
+let editPost = null;
+let editRating = 0;
+
+function renderEditStars() {
+  $("edit-post-stars").replaceChildren(
+    ...[1, 2, 3, 4, 5].map((n) => {
+      const star = el(
+        "button",
+        { type: "button", className: n <= editRating ? "star on" : "star" },
+        n <= editRating ? "★" : "☆"
+      );
+      star.setAttribute("aria-label", `${n} ${n === 1 ? "Stern" : "Sterne"}`);
+      star.onclick = () => {
+        editRating = n;
+        renderEditStars();
+      };
+      return star;
+    })
+  );
+}
+
+function openEditPost(post) {
+  editPost = post;
+  editRating = post.rating || 0;
+  $("edit-post-title").value = post.title || "";
+  $("edit-post-title").hidden = !!post.auto;
+  $("edit-post-body").value = post.body || "";
+  $("edit-post-stars-wrap").hidden = !post.rating;
+  if (post.rating) renderEditStars();
+  $("edit-post-status").textContent = "";
+  $("edit-post-submit").disabled = false;
+  $("edit-post-dialog").showModal();
+}
+$("edit-post-close").onclick = () => $("edit-post-dialog").close();
+
+$("edit-post-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const body = $("edit-post-body").value.trim();
+  if (!body || !editPost) return;
+  $("edit-post-submit").disabled = true;
+  $("edit-post-status").textContent = "Speichere …";
+  const fields = { body };
+  if (!editPost.auto) fields.title = $("edit-post-title").value.trim() || null;
+  if (editPost.rating) fields.rating = editRating;
+  const { error } = await sb.from("posts").update(fields).eq("id", editPost.id);
+  if (error) {
+    $("edit-post-status").textContent = "Das hat nicht geklappt: " + error.message;
+    $("edit-post-submit").disabled = false;
+    return;
+  }
+  $("edit-post-dialog").close();
+  loadFeed();
 };
 
 // ---------- Buch abgeschlossen: Sterne + Bewertung ----------
