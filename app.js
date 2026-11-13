@@ -955,7 +955,7 @@ async function loadFeed() {
   $("feed-status").textContent = "Lade …";
   const { data, error } = await sb
     .from("posts")
-    .select("id, user_id, title, body, images, rating, auto, created_at, books(id, title, authors, cover), profiles(display_name)")
+    .select("id, user_id, title, body, images, rating, auto, started_at, finished_at, created_at, books(id, title, authors, cover), profiles(display_name)")
     .order("created_at", { ascending: false })
     .range(0, feedLimit); // ein Eintrag mehr als angezeigt, um "mehr laden" zu erkennen
   if (error) {
@@ -995,41 +995,67 @@ function postCard(post, urls) {
     { className: post.auto ? "post auto" : "post" },
     el("div", { className: "post-head" }, el("strong", {}, name), el("span", { className: "meta" }, formatDateTime(post.created_at)))
   );
-  if (post.title) card.append(el("h3", {}, post.title));
   const stars = post.rating
     ? el("div", { className: "post-stars", "aria-label": `${post.rating} von 5 Sternen` }, "★".repeat(post.rating) + "☆".repeat(5 - post.rating))
     : null;
-  if (stars && !post.auto) card.append(stars);
-  // Lange Beiträge: nur die ersten 8 Zeilen zeigen, Rest aufklappbar
-  const bodyEl = el("p", { className: "post-body clamp" }, post.body);
-  const more = el("button", { className: "post-more", type: "button", hidden: true }, "Mehr anzeigen");
-  more.onclick = () => {
-    const open = bodyEl.classList.toggle("clamp") === false;
-    more.textContent = open ? "Weniger anzeigen" : "Mehr anzeigen";
-  };
-  card.append(bodyEl, more);
-  if (stars && post.auto) card.append(stars);
+  if (post.auto && post.books) {
+    // Automatischer "abgeschlossen"-Beitrag: großes Cover links, Angaben rechts
+    const entry = (mine && (myLibrary.find((b) => b.id === post.books.id) || {}).entry) || {};
+    const period = readingPeriod({
+      startedAt: post.started_at || entry.startedAt || null,
+      finishedAt: post.finished_at || entry.finishedAt || null,
+    });
+    const cover = { title: post.books.title, cover: post.books.cover, fallbackCover: null };
+    card.append(
+      el(
+        "div",
+        { className: "auto-body" },
+        el("div", { className: "auto-cover" }, coverElement(cover)),
+        el(
+          "div",
+          { className: "auto-info" },
+          el("h3", {}, post.books.title),
+          el("div", { className: "author" }, (post.books.authors || []).join(", ")),
+          stars || "",
+          period ? el("div", { className: "meta" }, period) : "",
+          el("p", { className: "auto-text" }, post.body)
+        )
+      )
+    );
+  } else {
+    if (post.title) card.append(el("h3", {}, post.title));
+    if (stars && !post.auto) card.append(stars);
+    // Lange Beiträge: nur die ersten 8 Zeilen zeigen, Rest aufklappbar
+    const bodyEl = el("p", { className: "post-body clamp" }, post.body);
+    const more = el("button", { className: "post-more", type: "button", hidden: true }, "Mehr anzeigen");
+    more.onclick = () => {
+      const open = bodyEl.classList.toggle("clamp") === false;
+      more.textContent = open ? "Weniger anzeigen" : "Mehr anzeigen";
+    };
+    card.append(bodyEl, more);
+    if (stars && post.auto) card.append(stars);
 
-  const images = (post.images || []).map((path) => urls[path]).filter(Boolean);
-  if (images.length) {
-    card.append(
-      el(
-        "div",
-        { className: "post-images n" + images.length },
-        ...images.map((url) => el("img", { src: url, alt: "Foto", loading: "lazy" }))
-      )
-    );
-  }
-  if (post.books) {
-    const book = { title: post.books.title, cover: post.books.cover, fallbackCover: null };
-    card.append(
-      el(
-        "div",
-        { className: "post-book" },
-        el("div", { className: "row-cover" }, coverElement(book)),
-        el("div", {}, el("div", { className: "title" }, post.books.title), el("div", { className: "author" }, (post.books.authors || []).join(", ")))
-      )
-    );
+    const images = (post.images || []).map((path) => urls[path]).filter(Boolean);
+    if (images.length) {
+      card.append(
+        el(
+          "div",
+          { className: "post-images n" + images.length },
+          ...images.map((url) => el("img", { src: url, alt: "Foto", loading: "lazy" }))
+        )
+      );
+    }
+    if (post.books) {
+      const book = { title: post.books.title, cover: post.books.cover, fallbackCover: null };
+      card.append(
+        el(
+          "div",
+          { className: "post-book" },
+          el("div", { className: "row-cover" }, coverElement(book)),
+          el("div", {}, el("div", { className: "title" }, post.books.title), el("div", { className: "author" }, (post.books.authors || []).join(", ")))
+        )
+      );
+    }
   }
   if (mine) {
     const del = el("button", { className: "btn secondary small", type: "button" }, "Löschen");
@@ -1232,6 +1258,8 @@ $("finish-stars-only").onclick = async () => {
       book_id: finishBook.id,
       rating: finishRating,
       auto: true,
+      started_at: finishBook.entry.startedAt || null,
+      finished_at: finishBook.entry.finishedAt || null,
     });
     finishDone();
   } catch (err) {
@@ -1255,6 +1283,8 @@ $("finish-form").onsubmit = async (event) => {
       images: uploaded,
       book_id: finishBook.id,
       rating: finishRating || null,
+      started_at: finishBook.entry.startedAt || null,
+      finished_at: finishBook.entry.finishedAt || null,
     });
     await applyFinishRating();
     finishDone();

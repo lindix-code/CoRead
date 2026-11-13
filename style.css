@@ -366,3 +366,12 @@ header { flex-wrap: wrap; gap: 4px; }
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* Automatischer "abgeschlossen"-Beitrag: großes Cover + Angaben */
+.auto-body { display: flex; align-items: center; gap: 16px; margin: 10px 0 12px; }
+.auto-cover { width: min(38vw, 150px); flex-shrink: 0; }
+.auto-cover img, .auto-cover .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); }
+.auto-info { min-width: 0; }
+.auto-info h3 { margin: 0 0 2px; font-size: 1.2rem; }
+.auto-info .post-stars { margin: 6px 0 4px; font-size: 1.25rem; }
+.auto-text { margin: 10px 0 0; line-height: 1.4; }
