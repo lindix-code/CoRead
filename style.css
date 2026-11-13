@@ -212,3 +212,22 @@ header { flex-wrap: wrap; gap: 4px; }
 .row-cover img, .row-cover .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 4px; }
 .row-info .title { font-weight: 600; font-size: 0.95rem; }
 .tile[aria-expanded="true"] { outline: 2px solid #6b3f2a; }
+
+/* Karussell (Swipe) auf der Startseite */
+.carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.carousel::-webkit-scrollbar { display: none; }
+.slide { flex: 0 0 100%; scroll-snap-align: start; padding: 4px; }
+.dots { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+.dot { width: 10px; height: 10px; padding: 0; border: 0; border-radius: 50%; background: #cbbfb4; cursor: pointer; }
+.dot.active { background: #6b3f2a; }
+
+/* Cover-Upload im Detailfenster */
+.cover-slot { width: 110px; flex-shrink: 0; }
+.cover-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.btn.small { padding: 6px 8px; font-size: 0.8rem; }

@@ -172,20 +172,23 @@ function bookToDb(book) {
     categories: book.categories,
     description: book.description || null,
     isbn: book.isbn,
-    cover: book.cover,
+    cover: book.originalCover !== undefined ? book.originalCover : book.cover,
   };
 }
 
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, owned, started_at, finished_at, progress_page, rating, books(*)")
+    .select("status, owned, started_at, finished_at, custom_cover, progress_page, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
   return data.map((r) => ({
     ...dbToBook(r.books),
+    cover: r.custom_cover || r.books.cover,
+    originalCover: r.books.cover,
     entry: {
+      customCover: r.custom_cover,
       status: r.status,
       owned: r.owned,
       startedAt: r.started_at,
@@ -209,6 +212,7 @@ async function saveEntry(book, entry) {
       book_id: book.id,
       status: entry.status,
       owned: entry.owned,
+      custom_cover: entry.customCover || null,
       started_at: entry.startedAt,
       finished_at: entry.finishedAt,
       progress_page: entry.progress,
@@ -240,6 +244,34 @@ async function loadFriend() {
   const friendId = row.user_a === me.id ? row.user_b : row.user_a;
   const { data: profile } = await sb.from("profiles").select("*").eq("id", friendId).single();
   friend = profile || null;
+}
+
+// ---------- Cover-Upload ----------
+
+// Verkleinert das Bild (max. 600 px breit) und wandelt es in JPEG um
+async function resizeToJpeg(file, maxWidth = 600) {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxWidth / bitmap.width);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Das Bild konnte nicht verarbeitet werden."))),
+      "image/jpeg",
+      0.85
+    );
+  });
+}
+
+async function uploadCover(book, file) {
+  const blob = await resizeToJpeg(file);
+  const safeId = book.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const path = `${me.id}/${safeId}-${Date.now()}.jpg`;
+  const { error } = await sb.storage.from("covers").upload(path, blob, { contentType: "image/jpeg" });
+  if (error) throw error;
+  return sb.storage.from("covers").getPublicUrl(path).data.publicUrl;
 }
 
 // ---------- Anzeige-Helfer ----------
@@ -316,11 +348,15 @@ function showDetail(book, readOnly = false) {
   // Falls das Buch schon in meiner Bibliothek ist, den gespeicherten Stand zeigen
   const mine = myLibrary.find((b) => b.id === book.id);
   const entry = readOnly ? book.entry : mine && mine.entry;
+  // Eigenes Cover der Bibliothek zeigen, auch wenn das Buch aus der Suche kommt
+  if (!readOnly && mine) book = { ...book, cover: mine.cover, originalCover: mine.originalCover };
+  let customCover = entry ? entry.customCover || null : null;
+  const coverSlot = el("div", { className: "cover-slot" }, coverElement(book));
 
   const top = el(
     "div",
     { className: "detail-top" },
-    coverElement(book),
+    coverSlot,
     el(
       "div",
       {},
@@ -378,9 +414,8 @@ function showDetail(book, readOnly = false) {
     const updateDateFields = () => {
       startedField.hidden = !["reading", "read"].includes(statusSelect.value);
       finishedField.hidden = statusSelect.value !== "read";
+      progressField.hidden = statusSelect.value !== "reading";
     };
-    updateDateFields();
-    statusSelect.onchange = updateDateFields;
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
       id: "f-progress",
@@ -396,6 +431,52 @@ function showDetail(book, readOnly = false) {
       [["", "–"], ...[1, 2, 3, 4, 5].map((n) => [n, "★".repeat(n)])],
       entry ? entry.rating : ""
     );
+
+    updateDateFields();
+    statusSelect.onchange = updateDateFields;
+
+    // Cover tauschen / hochladen
+    const coverMsg = el("div", { className: "meta", role: "status" });
+    const fileInput = el("input", { type: "file", accept: "image/*", hidden: true });
+    const uploadBtn = el(
+      "button",
+      { className: "btn secondary small", type: "button" },
+      book.cover ? "Cover ändern" : "Cover hochladen"
+    );
+    uploadBtn.onclick = () => fileInput.click();
+    const refreshCover = () => {
+      coverSlot.firstElementChild.replaceWith(coverElement(book));
+      uploadBtn.textContent = book.cover ? "Cover ändern" : "Cover hochladen";
+      resetBtn.hidden = !customCover;
+    };
+    fileInput.onchange = async () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      coverMsg.textContent = "Lade hoch …";
+      try {
+        const url = await uploadCover(book, file);
+        customCover = url;
+        book = {
+          ...book,
+          cover: url,
+          originalCover: book.originalCover !== undefined ? book.originalCover : book.cover,
+        };
+        coverMsg.textContent = "Cover hochgeladen. Mit „Speichern“ übernehmen.";
+        refreshCover();
+      } catch (err) {
+        coverMsg.textContent = "Upload hat nicht geklappt: " + err.message;
+      }
+      fileInput.value = "";
+    };
+    const resetBtn = el("button", { className: "btn secondary small", type: "button" }, "Standard-Cover");
+    resetBtn.hidden = !customCover;
+    resetBtn.onclick = () => {
+      customCover = null;
+      book = { ...book, cover: book.originalCover || null };
+      coverMsg.textContent = "Standard-Cover. Mit „Speichern“ übernehmen.";
+      refreshCover();
+    };
+    coverSlot.append(el("div", { className: "cover-actions" }, uploadBtn, resetBtn, fileInput), coverMsg);
 
     const saveBtn = el("button", { className: "btn", type: "button" }, entry ? "Speichern" : "Zur Bibliothek");
     const msg = el("p", { role: "status", className: "meta" });
@@ -416,7 +497,8 @@ function showDetail(book, readOnly = false) {
               ? $("f-started").value || (status === "reading" ? todayLocal() : null)
               : null,
           finishedAt: status === "read" ? $("f-finished").value || todayLocal() : null,
-          progress: $("f-progress").value === "" ? null : Number($("f-progress").value),
+          customCover,
+          progress: status === "reading" && $("f-progress").value !== "" ? Number($("f-progress").value) : null,
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
         });
         await reloadMyLibrary();
@@ -508,80 +590,93 @@ function todayLocal() {
   return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
+function heroCard(book) {
+  const page = book.entry.progress || 0;
+  const pct = book.pages ? Math.min(100, Math.round((page / book.pages) * 100)) : null;
+
+  const fill = el("div", { className: "bar-fill" });
+  fill.style.width = (pct || 0) + "%";
+  const bar = el("div", { className: "bar" }, fill);
+  const progressText = el(
+    "div",
+    { className: "progress-text" },
+    pct != null ? `Seite ${page} von ${book.pages} · ${pct} %` : `Seite ${page}`
+  );
+
+  const input = el("input", { type: "number", min: "0", value: page, "aria-label": "Aktuelle Seite" });
+  if (book.pages) input.max = String(book.pages);
+  const saveBtn = el("button", { className: "btn", type: "button" }, "Seite speichern");
+  const detailBtn = el("button", { className: "btn secondary", type: "button" }, "Details");
+  const msg = el("div", { className: "meta", role: "status" });
+  saveBtn.onclick = async () => {
+    if (input.value === "") return;
+    saveBtn.disabled = true;
+    try {
+      await saveEntry(book, { ...book.entry, progress: Number(input.value) });
+      homeBookId = book.id;
+      await reloadMyLibrary();
+      renderHome();
+    } catch (err) {
+      msg.textContent = "Speichern hat nicht geklappt: " + err.message;
+      saveBtn.disabled = false;
+    }
+  };
+  detailBtn.onclick = () => showDetail(book);
+
+  const info = el(
+    "div",
+    { className: "hero-info" },
+    el("div", { className: "hero-label" }, "Ich lese gerade"),
+    el("h2", {}, book.title),
+    el("div", { className: "author" }, book.authors.join(", ")),
+    bar,
+    progressText,
+    el("div", { className: "actions" }, input, saveBtn, detailBtn),
+    msg
+  );
+  return el("div", { className: "hero" }, el("div", { className: "hero-cover" }, coverElement(book)), info);
+}
+
 function renderHome() {
   const reading = myLibrary.filter((b) => b.entry.status === "reading");
   const hero = $("home-hero");
 
   if (!reading.length) {
+    homeBookId = null;
     const searchBtn = el("button", { className: "btn", type: "button" }, "Buch suchen");
     searchBtn.onclick = () => showTab("search");
     hero.replaceChildren(
       el("div", { className: "hero empty" }, el("p", {}, "Du liest gerade kein Buch."), searchBtn)
     );
   } else {
-    const book = reading.find((b) => b.id === homeBookId) || reading[0];
-    homeBookId = book.id;
-    const page = book.entry.progress || 0;
-    const pct = book.pages ? Math.min(100, Math.round((page / book.pages) * 100)) : null;
+    let index = reading.findIndex((b) => b.id === homeBookId);
+    if (index < 0) index = 0;
+    homeBookId = reading[index].id;
 
-    const fill = el("div", { className: "bar-fill" });
-    fill.style.width = (pct || 0) + "%";
-    const bar = el("div", { className: "bar" }, fill);
-    const progressText = el(
+    // Mehrere Bücher: seitlich wischen (Swipe), Punkte zeigen die Position
+    const track = el(
       "div",
-      { className: "progress-text" },
-      pct != null ? `Seite ${page} von ${book.pages} · ${pct} %` : `Seite ${page}`
+      { className: "carousel" },
+      ...reading.map((b) => el("div", { className: "slide" }, heroCard(b)))
     );
-
-    const input = el("input", { type: "number", min: "0", value: page, "aria-label": "Aktuelle Seite" });
-    if (book.pages) input.max = String(book.pages);
-    const saveBtn = el("button", { className: "btn", type: "button" }, "Seite speichern");
-    const detailBtn = el("button", { className: "btn secondary", type: "button" }, "Details");
-    const msg = el("div", { className: "meta", role: "status" });
-    saveBtn.onclick = async () => {
-      if (input.value === "") return;
-      saveBtn.disabled = true;
-      try {
-        await saveEntry(book, { ...book.entry, progress: Number(input.value) });
-        await reloadMyLibrary();
-        renderHome();
-      } catch (err) {
-        msg.textContent = "Speichern hat nicht geklappt: " + err.message;
-        saveBtn.disabled = false;
+    const dots = reading.map((b, i) => {
+      const dot = el("button", {
+        className: i === index ? "dot active" : "dot",
+        type: "button",
+        "aria-label": `Buch ${i + 1}: ${b.title}`,
+      });
+      dot.onclick = () => track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" });
+      return dot;
+    });
+    track.onscroll = () => {
+      const i = Math.round(track.scrollLeft / track.clientWidth);
+      if (reading[i]) {
+        homeBookId = reading[i].id;
+        dots.forEach((dot, j) => dot.classList.toggle("active", j === i));
       }
     };
-    detailBtn.onclick = () => showDetail(book);
-
-    const info = el(
-      "div",
-      { className: "hero-info" },
-      el("div", { className: "hero-label" }, "Ich lese gerade"),
-      el("h2", {}, book.title),
-      el("div", { className: "author" }, book.authors.join(", ")),
-      bar,
-      progressText,
-      el("div", { className: "actions" }, input, saveBtn, detailBtn),
-      msg
-    );
-
-    const parts = [el("div", { className: "hero" }, el("div", { className: "hero-cover" }, coverElement(book)), info)];
-
-    if (reading.length > 1) {
-      const chips = reading.map((b) => {
-        const chip = el(
-          "button",
-          { className: b.id === book.id ? "btn" : "btn secondary", type: "button" },
-          b.title.length > 28 ? b.title.slice(0, 27) + "…" : b.title
-        );
-        chip.onclick = () => {
-          homeBookId = b.id;
-          renderHome();
-        };
-        return chip;
-      });
-      parts.push(el("div", { className: "actions subtabs" }, ...chips));
-    }
-    hero.replaceChildren(...parts);
+    hero.replaceChildren(track, ...(reading.length > 1 ? [el("div", { className: "dots" }, ...dots)] : []));
+    if (index > 0) requestAnimationFrame(() => (track.scrollLeft = index * track.clientWidth));
   }
 
   const owned = myLibrary.filter((b) => b.entry.owned).length;
@@ -622,17 +717,46 @@ function readingPeriod(entry) {
   return `${formatDate(entry.startedAt)} – ${formatDate(entry.finishedAt)}${dur}`;
 }
 
+let overviewYear = String(new Date().getFullYear());
+
+// Jahre für den Filter: die letzten vier plus alle Jahre mit Einträgen
+function overviewYears() {
+  const current = new Date().getFullYear();
+  const years = new Set([0, 1, 2, 3].map((i) => String(current - i)));
+  for (const b of myLibrary) {
+    if (b.entry.status === "read" && b.entry.finishedAt) years.add(b.entry.finishedAt.slice(0, 4));
+  }
+  return [...years].sort().reverse();
+}
+
 function renderYearOverview() {
   const box = $("year-overview");
   $("tile-year").setAttribute("aria-expanded", String(yearOpen));
   box.hidden = !yearOpen;
   if (!yearOpen) return;
 
-  const year = String(new Date().getFullYear());
-  const books = booksReadIn(year);
+  const filter = el(
+    "div",
+    { className: "actions subtabs" },
+    ...overviewYears().map((year) => {
+      const chip = el(
+        "button",
+        { className: year === overviewYear ? "btn" : "btn secondary", type: "button" },
+        `${year} (${booksReadIn(year).length})`
+      );
+      chip.onclick = () => {
+        overviewYear = year;
+        renderYearOverview();
+      };
+      return chip;
+    })
+  );
+
+  const books = booksReadIn(overviewYear);
   if (!books.length) {
     box.replaceChildren(
-      el("p", { className: "meta" }, `Noch kein Buch in ${year} beendet. Gezählt werden Bücher mit Status „Gelesen“ und Datum „Beendet am“.`)
+      filter,
+      el("p", { className: "meta" }, `Kein Buch in ${overviewYear} beendet. Gezählt werden Bücher mit Status „Gelesen“ und Datum „Beendet am“.`)
     );
     return;
   }
@@ -651,7 +775,11 @@ function renderYearOverview() {
     row.onclick = () => showDetail(book);
     return row;
   });
-  box.replaceChildren(el("h3", {}, `Gelesen ${year}: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`), ...rows);
+  box.replaceChildren(
+    filter,
+    el("h3", {}, `Gelesen ${overviewYear}: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`),
+    ...rows
+  );
 }
 
 $("tile-shelf").onclick = () => {
