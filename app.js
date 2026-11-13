@@ -930,6 +930,176 @@ $("tile-stack").onclick = () => {
   showTab("library");
 };
 
+// ---------- Pinnwand ----------
+
+const FEED_PAGE = 20;
+const MAX_PHOTOS = 4;
+let feedLimit = FEED_PAGE;
+let pendingPhotos = []; // ausgewählte Fotos für den neuen Eintrag
+
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+async function loadFeed() {
+  $("feed-status").textContent = "Lade …";
+  const { data, error } = await sb
+    .from("posts")
+    .select("id, user_id, title, body, images, created_at, books(id, title, authors, cover), profiles(display_name)")
+    .order("created_at", { ascending: false })
+    .range(0, feedLimit); // ein Eintrag mehr als angezeigt, um "mehr laden" zu erkennen
+  if (error) {
+    $("feed-status").textContent = "Die Pinnwand konnte nicht geladen werden: " + error.message;
+    return;
+  }
+  const hasMore = data.length > feedLimit;
+  const posts = data.slice(0, feedLimit);
+
+  // Fotos liegen in einem privaten Speicher: zeitlich begrenzte Links holen
+  const urls = {};
+  const paths = posts.flatMap((p) => p.images || []);
+  if (paths.length) {
+    const { data: signed } = await sb.storage.from("post-images").createSignedUrls(paths, 3600);
+    for (const item of signed || []) if (item.signedUrl) urls[item.path] = item.signedUrl;
+  }
+
+  $("feed-status").textContent = posts.length ? "" : "Noch keine Einträge. Schreib den ersten!";
+  $("feed").replaceChildren(...posts.map((p) => postCard(p, urls)));
+  $("feed-more").hidden = !hasMore;
+}
+
+function postCard(post, urls) {
+  const mine = post.user_id === me.id;
+  const name = mine ? "Du" : (post.profiles && post.profiles.display_name) || "Freundin";
+  const card = el(
+    "article",
+    { className: "post" },
+    el("div", { className: "post-head" }, el("strong", {}, name), el("span", { className: "meta" }, formatDateTime(post.created_at)))
+  );
+  if (post.title) card.append(el("h3", {}, post.title));
+  card.append(el("p", { className: "post-body" }, post.body));
+
+  const images = (post.images || []).map((path) => urls[path]).filter(Boolean);
+  if (images.length) {
+    card.append(
+      el(
+        "div",
+        { className: "post-images n" + images.length },
+        ...images.map((url) => el("img", { src: url, alt: "Foto", loading: "lazy" }))
+      )
+    );
+  }
+  if (post.books) {
+    const book = { title: post.books.title, cover: post.books.cover, fallbackCover: null };
+    card.append(
+      el(
+        "div",
+        { className: "post-book" },
+        el("div", { className: "row-cover" }, coverElement(book)),
+        el("div", {}, el("div", { className: "title" }, post.books.title), el("div", { className: "author" }, (post.books.authors || []).join(", ")))
+      )
+    );
+  }
+  if (mine) {
+    const del = el("button", { className: "btn secondary small", type: "button" }, "Löschen");
+    del.onclick = async () => {
+      if (!confirm("Diesen Eintrag wirklich löschen?")) return;
+      del.disabled = true;
+      if ((post.images || []).length) await sb.storage.from("post-images").remove(post.images);
+      const { error } = await sb.from("posts").delete().eq("id", post.id);
+      if (error) {
+        del.disabled = false;
+        $("feed-status").textContent = "Löschen hat nicht geklappt: " + error.message;
+        return;
+      }
+      loadFeed();
+    };
+    card.append(el("div", { className: "actions" }, del));
+  }
+  return card;
+}
+
+function renderPreviews() {
+  $("post-previews").replaceChildren(
+    ...pendingPhotos.map((file, i) => {
+      const remove = el("button", { className: "preview-remove", type: "button", "aria-label": "Foto entfernen" }, "×");
+      remove.onclick = () => {
+        pendingPhotos.splice(i, 1);
+        renderPreviews();
+      };
+      return el("div", { className: "preview" }, el("img", { src: URL.createObjectURL(file), alt: "Vorschau" }), remove);
+    })
+  );
+  $("post-photo-btn").hidden = pendingPhotos.length >= MAX_PHOTOS;
+}
+
+$("tab-feed").onclick = () => showTab("feed");
+$("feed-more").onclick = () => {
+  feedLimit += FEED_PAGE;
+  loadFeed();
+};
+
+$("post-new").onclick = () => {
+  $("post-form").reset();
+  pendingPhotos = [];
+  renderPreviews();
+  $("post-status").textContent = "";
+  $("post-submit").disabled = false;
+  const select = $("post-book");
+  select.replaceChildren(el("option", { value: "" }, "– kein Buch –"));
+  for (const b of [...myLibrary].sort((a, c) => collator.compare(a.title, c.title))) {
+    select.append(el("option", { value: b.id }, b.title));
+  }
+  $("post-dialog").showModal();
+};
+$("post-close").onclick = () => $("post-dialog").close();
+$("post-photo-btn").onclick = () => $("post-photos").click();
+$("post-photos").onchange = (event) => {
+  const room = MAX_PHOTOS - pendingPhotos.length;
+  pendingPhotos.push(...[...event.target.files].slice(0, room));
+  event.target.value = "";
+  renderPreviews();
+};
+
+$("post-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const body = $("post-body").value.trim();
+  if (!body) return;
+  $("post-submit").disabled = true;
+  $("post-status").textContent = pendingPhotos.length ? "Lade Fotos hoch …" : "Veröffentliche …";
+  const uploaded = [];
+  try {
+    for (const file of pendingPhotos) {
+      const blob = await resizeToJpeg(file, 1200);
+      const path = `${me.id}/${crypto.randomUUID()}.jpg`;
+      const { error } = await sb.storage.from("post-images").upload(path, blob, { contentType: "image/jpeg" });
+      if (error) throw error;
+      uploaded.push(path);
+    }
+    const { error } = await sb.from("posts").insert({
+      title: $("post-title").value.trim() || null,
+      body,
+      images: uploaded,
+      book_id: $("post-book").value || null,
+    });
+    if (error) throw error;
+    $("post-dialog").close();
+    feedLimit = FEED_PAGE;
+    loadFeed();
+  } catch (err) {
+    // Bereits hochgeladene Fotos wieder entfernen, damit nichts liegen bleibt
+    if (uploaded.length) await sb.storage.from("post-images").remove(uploaded);
+    $("post-status").textContent = "Das hat nicht geklappt: " + err.message;
+    $("post-submit").disabled = false;
+  }
+};
+
 // ---------- Verbindung ----------
 
 function renderFriendPanel() {
@@ -1001,7 +1171,7 @@ async function onSession(session) {
     me = null;
     friend = null;
     myLibrary = [];
-    for (const id of ["view-home", "view-search", "view-library", "view-friend"]) $(id).hidden = true;
+    for (const id of ["view-home", "view-search", "view-library", "view-feed", "view-friend"]) $(id).hidden = true;
     return;
   }
 
@@ -1022,12 +1192,16 @@ async function onSession(session) {
 // ---------- Bedienung ----------
 
 function showTab(name) {
-  for (const n of ["home", "search", "library", "friend"]) {
+  for (const n of ["home", "search", "library", "feed", "friend"]) {
     $("view-" + n).hidden = n !== name;
     $("tab-" + n).classList.toggle("active", n === name);
   }
   if (name === "library") renderLibrary();
   if (name === "home") renderHome();
+  if (name === "feed") {
+    feedLimit = FEED_PAGE;
+    loadFeed();
+  }
 }
 
 $("tab-home").onclick = () => showTab("home");

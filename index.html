@@ -13,6 +13,7 @@
       <button id="tab-home" class="tab active">Start</button>
       <button id="tab-search" class="tab">Suche</button>
       <button id="tab-library" class="tab">Bibliothek</button>
+      <button id="tab-feed" class="tab">Pinnwand</button>
       <button id="tab-friend" class="tab">Freundin</button>
     </nav>
     <button id="logout" class="tab" hidden>Abmelden</button>
@@ -94,6 +95,17 @@
       <div id="library" class="grid"></div>
     </section>
 
+    <!-- Pinnwand -->
+    <section id="view-feed" hidden>
+      <div class="feed-top">
+        <h2>Pinnwand</h2>
+        <button id="post-new" class="btn" type="button">+ Neuer Eintrag</button>
+      </div>
+      <p id="feed-status" role="status"></p>
+      <div id="feed"></div>
+      <button id="feed-more" class="btn secondary" type="button" hidden>Ältere Einträge laden</button>
+    </section>
+
     <!-- Verbindung mit der Freundin -->
     <section id="view-friend" hidden>
       <div class="stack">
@@ -108,6 +120,25 @@
       </div>
     </section>
   </main>
+
+  <dialog id="post-dialog">
+    <button id="post-close" class="close" aria-label="Schließen">×</button>
+    <h2>Neuer Eintrag</h2>
+    <form id="post-form">
+      <input id="post-title" type="text" maxlength="120" placeholder="Titel (optional)" autocomplete="off">
+      <textarea id="post-body" rows="5" maxlength="5000" placeholder="Was gibt's Neues? Z. B. Buch abgeschlossen, neue Bücher bestellt …" required></textarea>
+      <label class="field">Buch verknüpfen (optional)
+        <select id="post-book"></select>
+      </label>
+      <div class="actions">
+        <button id="post-photo-btn" class="btn secondary" type="button">Fotos hinzufügen</button>
+        <input id="post-photos" type="file" accept="image/*" multiple hidden>
+      </div>
+      <div id="post-previews" class="previews"></div>
+      <p id="post-status" role="status"></p>
+      <button id="post-submit" type="submit">Veröffentlichen</button>
+    </form>
+  </dialog>
 
   <dialog id="add-dialog">
     <button id="add-close" class="close" aria-label="Schließen">×</button>
