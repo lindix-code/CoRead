@@ -326,3 +326,22 @@ header { flex-wrap: wrap; gap: 4px; }
   cursor: pointer;
   line-height: 1;
 }
+
+/* Bewertung nach "abgeschlossen" */
+.stars { display: flex; gap: 4px; margin: 4px 0 8px; }
+.star { border: 0; background: none; font-size: 2.2rem; line-height: 1; color: #cbbfb4; cursor: pointer; padding: 0 2px; }
+.star.on { color: #c98a1b; }
+.finish-q { margin: 12px 0 4px; font-weight: 600; }
+.finish-choice { display: flex; flex-direction: column; gap: 8px; }
+#finish-form { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+#finish-form input[type="text"], #finish-form textarea {
+  padding: 10px 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  border: 1px solid #cbbfb4;
+  border-radius: 8px;
+  width: 100%;
+}
+#finish-form textarea { resize: vertical; }
+.post-stars { color: #c98a1b; font-size: 1.15rem; letter-spacing: 2px; margin: 2px 0 6px; }
+.post.auto { background: #fbf3e6; }

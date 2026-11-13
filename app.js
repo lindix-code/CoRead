@@ -518,6 +518,10 @@ function showDetail(book, readOnly = false, preset = null) {
         $("add-dialog").close();
         renderLibrary();
         renderHome();
+        // Neu als "Gelesen" markiert: nach Sternen und Bewertung fragen
+        if (status === "read" && !(entry && entry.status === "read")) {
+          openFinishDialog(myLibrary.find((b) => b.id === book.id));
+        }
       } catch (err) {
         msg.textContent = "Speichern hat nicht geklappt: " + err.message;
         saveBtn.disabled = false;
@@ -951,7 +955,7 @@ async function loadFeed() {
   $("feed-status").textContent = "Lade …";
   const { data, error } = await sb
     .from("posts")
-    .select("id, user_id, title, body, images, created_at, books(id, title, authors, cover), profiles(display_name)")
+    .select("id, user_id, title, body, images, rating, auto, created_at, books(id, title, authors, cover), profiles(display_name)")
     .order("created_at", { ascending: false })
     .range(0, feedLimit); // ein Eintrag mehr als angezeigt, um "mehr laden" zu erkennen
   if (error) {
@@ -979,11 +983,16 @@ function postCard(post, urls) {
   const name = mine ? "Du" : (post.profiles && post.profiles.display_name) || "Freundin";
   const card = el(
     "article",
-    { className: "post" },
+    { className: post.auto ? "post auto" : "post" },
     el("div", { className: "post-head" }, el("strong", {}, name), el("span", { className: "meta" }, formatDateTime(post.created_at)))
   );
   if (post.title) card.append(el("h3", {}, post.title));
+  const stars = post.rating
+    ? el("div", { className: "post-stars", "aria-label": `${post.rating} von 5 Sternen` }, "★".repeat(post.rating) + "☆".repeat(5 - post.rating))
+    : null;
+  if (stars && !post.auto) card.append(stars);
   card.append(el("p", { className: "post-body" }, post.body));
+  if (stars && post.auto) card.append(stars);
 
   const images = (post.images || []).map((path) => urls[path]).filter(Boolean);
   if (images.length) {
@@ -1025,18 +1034,45 @@ function postCard(post, urls) {
   return card;
 }
 
-function renderPreviews() {
-  $("post-previews").replaceChildren(
-    ...pendingPhotos.map((file, i) => {
+function renderPhotoList(list, box, addBtn) {
+  box.replaceChildren(
+    ...list.map((file, i) => {
       const remove = el("button", { className: "preview-remove", type: "button", "aria-label": "Foto entfernen" }, "×");
       remove.onclick = () => {
-        pendingPhotos.splice(i, 1);
-        renderPreviews();
+        list.splice(i, 1);
+        renderPhotoList(list, box, addBtn);
       };
       return el("div", { className: "preview" }, el("img", { src: URL.createObjectURL(file), alt: "Vorschau" }), remove);
     })
   );
-  $("post-photo-btn").hidden = pendingPhotos.length >= MAX_PHOTOS;
+  addBtn.hidden = list.length >= MAX_PHOTOS;
+}
+
+function renderPreviews() {
+  renderPhotoList(pendingPhotos, $("post-previews"), $("post-photo-btn"));
+}
+
+// Lädt Fotos in den privaten Speicher und gibt die Pfade zurück
+async function uploadPostPhotos(files) {
+  const uploaded = [];
+  try {
+    for (const file of files) {
+      const blob = await resizeToJpeg(file, 1200);
+      const path = `${me.id}/${crypto.randomUUID()}.jpg`;
+      const { error } = await sb.storage.from("post-images").upload(path, blob, { contentType: "image/jpeg" });
+      if (error) throw error;
+      uploaded.push(path);
+    }
+  } catch (err) {
+    if (uploaded.length) await sb.storage.from("post-images").remove(uploaded);
+    throw err;
+  }
+  return uploaded;
+}
+
+async function createPost(fields) {
+  const { error } = await sb.from("posts").insert(fields);
+  if (error) throw error;
 }
 
 $("tab-feed").onclick = () => showTab("feed");
@@ -1073,30 +1109,143 @@ $("post-form").onsubmit = async (event) => {
   if (!body) return;
   $("post-submit").disabled = true;
   $("post-status").textContent = pendingPhotos.length ? "Lade Fotos hoch …" : "Veröffentliche …";
-  const uploaded = [];
+  let uploaded = [];
   try {
-    for (const file of pendingPhotos) {
-      const blob = await resizeToJpeg(file, 1200);
-      const path = `${me.id}/${crypto.randomUUID()}.jpg`;
-      const { error } = await sb.storage.from("post-images").upload(path, blob, { contentType: "image/jpeg" });
-      if (error) throw error;
-      uploaded.push(path);
-    }
-    const { error } = await sb.from("posts").insert({
+    uploaded = await uploadPostPhotos(pendingPhotos);
+    await createPost({
       title: $("post-title").value.trim() || null,
       body,
       images: uploaded,
       book_id: $("post-book").value || null,
     });
-    if (error) throw error;
     $("post-dialog").close();
     feedLimit = FEED_PAGE;
     loadFeed();
   } catch (err) {
-    // Bereits hochgeladene Fotos wieder entfernen, damit nichts liegen bleibt
     if (uploaded.length) await sb.storage.from("post-images").remove(uploaded);
     $("post-status").textContent = "Das hat nicht geklappt: " + err.message;
     $("post-submit").disabled = false;
+  }
+};
+
+// ---------- Buch abgeschlossen: Sterne + Bewertung ----------
+
+let finishBook = null;
+let finishRating = 0;
+let finishPhotos = [];
+
+function renderFinishStars() {
+  $("finish-stars").replaceChildren(
+    ...[1, 2, 3, 4, 5].map((n) => {
+      const star = el(
+        "button",
+        { type: "button", className: n <= finishRating ? "star on" : "star", "aria-label": `${n} ${n === 1 ? "Stern" : "Sterne"}` },
+        n <= finishRating ? "★" : "☆"
+      );
+      star.onclick = () => {
+        finishRating = n;
+        renderFinishStars();
+      };
+      return star;
+    })
+  );
+}
+
+function openFinishDialog(book) {
+  finishBook = book;
+  finishRating = book.entry.rating || 0;
+  finishPhotos = [];
+  $("finish-form").reset();
+  $("finish-book").replaceChildren(
+    el("div", { className: "row-cover" }, coverElement(book)),
+    el("div", {}, el("div", { className: "title" }, book.title), el("div", { className: "author" }, book.authors.join(", ")))
+  );
+  renderFinishStars();
+  renderPhotoList(finishPhotos, $("finish-previews"), $("finish-photo-btn"));
+  $("finish-form").hidden = true;
+  $("finish-choice").hidden = false;
+  $("finish-status").textContent = "";
+  $("finish-submit").disabled = false;
+  $("finish-dialog").showModal();
+}
+
+// Sterne auch in der eigenen Bibliothek speichern
+async function applyFinishRating() {
+  if (!finishRating) return;
+  await saveEntry(finishBook, { ...finishBook.entry, rating: finishRating });
+  await reloadMyLibrary();
+  renderLibrary();
+  renderHome();
+}
+
+function finishDone() {
+  $("finish-dialog").close();
+  showTab("feed"); // Beitrag auf der Pinnwand ansehen
+}
+
+$("finish-close").onclick = () => $("finish-dialog").close();
+$("finish-skip").onclick = () => $("finish-dialog").close();
+$("finish-write").onclick = () => {
+  $("finish-choice").hidden = true;
+  $("finish-form").hidden = false;
+  $("finish-status").textContent = "";
+  $("finish-text").focus();
+};
+$("finish-back").onclick = () => {
+  $("finish-form").hidden = true;
+  $("finish-choice").hidden = false;
+};
+$("finish-photo-btn").onclick = () => $("finish-photos").click();
+$("finish-photos").onchange = (event) => {
+  finishPhotos.push(...[...event.target.files].slice(0, MAX_PHOTOS - finishPhotos.length));
+  event.target.value = "";
+  renderPhotoList(finishPhotos, $("finish-previews"), $("finish-photo-btn"));
+};
+
+// Option 2: nur Sterne -> automatischer Beitrag "<Name> hat <Buch> abgeschlossen."
+$("finish-stars-only").onclick = async () => {
+  if (!finishRating) {
+    $("finish-status").textContent = "Bitte wähle zuerst Sterne aus.";
+    return;
+  }
+  $("finish-status").textContent = "Veröffentliche …";
+  try {
+    await applyFinishRating();
+    await createPost({
+      body: `${me.display_name} hat „${finishBook.title}“ abgeschlossen.`,
+      book_id: finishBook.id,
+      rating: finishRating,
+      auto: true,
+    });
+    finishDone();
+  } catch (err) {
+    $("finish-status").textContent = "Das hat nicht geklappt: " + err.message;
+  }
+};
+
+// Option 1: eigene Bewertung mit Überschrift, Text, Fotos und Sternen
+$("finish-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const body = $("finish-text").value.trim();
+  if (!body) return;
+  $("finish-submit").disabled = true;
+  $("finish-status").textContent = finishPhotos.length ? "Lade Fotos hoch …" : "Veröffentliche …";
+  let uploaded = [];
+  try {
+    uploaded = await uploadPostPhotos(finishPhotos);
+    await createPost({
+      title: $("finish-headline").value.trim() || `Meine Bewertung zu „${finishBook.title}“`,
+      body,
+      images: uploaded,
+      book_id: finishBook.id,
+      rating: finishRating || null,
+    });
+    await applyFinishRating();
+    finishDone();
+  } catch (err) {
+    if (uploaded.length) await sb.storage.from("post-images").remove(uploaded);
+    $("finish-status").textContent = "Das hat nicht geklappt: " + err.message;
+    $("finish-submit").disabled = false;
   }
 };
 

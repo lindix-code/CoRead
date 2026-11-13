@@ -121,6 +121,34 @@
     </section>
   </main>
 
+  <dialog id="finish-dialog">
+    <button id="finish-close" class="close" aria-label="Schließen">×</button>
+    <h2>Buch abgeschlossen</h2>
+    <div id="finish-book" class="post-book"></div>
+    <p class="finish-q">Wie hat dir das Buch gefallen?</p>
+    <div id="finish-stars" class="stars" role="group" aria-label="Sterne"></div>
+
+    <div id="finish-choice" class="finish-choice">
+      <p class="finish-q">Möchtest du eine Bewertung schreiben?</p>
+      <button id="finish-write" class="btn" type="button">Ja, Bewertung schreiben</button>
+      <button id="finish-stars-only" class="btn secondary" type="button">Nein, nur Sterne vergeben</button>
+      <button id="finish-skip" class="btn secondary" type="button">Überspringen</button>
+    </div>
+
+    <form id="finish-form" hidden>
+      <input id="finish-headline" type="text" maxlength="120" placeholder="Überschrift (optional)" autocomplete="off">
+      <textarea id="finish-text" rows="6" maxlength="5000" placeholder="Deine Bewertung …" required></textarea>
+      <div class="actions">
+        <button id="finish-photo-btn" class="btn secondary" type="button">Fotos hinzufügen</button>
+        <input id="finish-photos" type="file" accept="image/*" multiple hidden>
+      </div>
+      <div id="finish-previews" class="previews"></div>
+      <button id="finish-submit" type="submit">Pinnwand veröffentlichen</button>
+      <button id="finish-back" class="btn secondary" type="button">Zurück</button>
+    </form>
+    <p id="finish-status" role="status"></p>
+  </dialog>
+
   <dialog id="post-dialog">
     <button id="post-close" class="close" aria-label="Schließen">×</button>
     <h2>Neuer Eintrag</h2>
