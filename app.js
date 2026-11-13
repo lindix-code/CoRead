@@ -976,7 +976,16 @@ async function loadFeed() {
   $("feed-status").textContent = posts.length ? "" : "Noch keine Einträge. Schreib den ersten!";
   $("feed").replaceChildren(...posts.map((p) => postCard(p, urls)));
   $("feed-more").hidden = !hasMore;
+  requestAnimationFrame(checkClamps);
 }
+
+// "Mehr anzeigen" nur bei Beiträgen, die länger als 8 Zeilen sind
+function checkClamps() {
+  for (const body of document.querySelectorAll("#feed .post-body.clamp")) {
+    body.nextElementSibling.hidden = body.scrollHeight <= body.clientHeight + 1;
+  }
+}
+window.addEventListener("resize", checkClamps);
 
 function postCard(post, urls) {
   const mine = post.user_id === me.id;
@@ -991,7 +1000,14 @@ function postCard(post, urls) {
     ? el("div", { className: "post-stars", "aria-label": `${post.rating} von 5 Sternen` }, "★".repeat(post.rating) + "☆".repeat(5 - post.rating))
     : null;
   if (stars && !post.auto) card.append(stars);
-  card.append(el("p", { className: "post-body" }, post.body));
+  // Lange Beiträge: nur die ersten 8 Zeilen zeigen, Rest aufklappbar
+  const bodyEl = el("p", { className: "post-body clamp" }, post.body);
+  const more = el("button", { className: "post-more", type: "button", hidden: true }, "Mehr anzeigen");
+  more.onclick = () => {
+    const open = bodyEl.classList.toggle("clamp") === false;
+    more.textContent = open ? "Weniger anzeigen" : "Mehr anzeigen";
+  };
+  card.append(bodyEl, more);
   if (stars && post.auto) card.append(stars);
 
   const images = (post.images || []).map((path) => urls[path]).filter(Boolean);
