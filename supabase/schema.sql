@@ -262,3 +262,8 @@ create policy "post_images_insert" on storage.objects for insert to authenticate
   with check (bucket_id = 'post-images' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "post_images_delete" on storage.objects for delete to authenticated
   using (bucket_id = 'post-images' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ---------- Sterne und automatische Beiträge (Migration 006) ----------
+alter table public.posts
+  add column if not exists rating smallint check (rating between 1 and 5),
+  add column if not exists auto boolean not null default false;
