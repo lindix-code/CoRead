@@ -915,12 +915,12 @@ function heroCard(book) {
       input.value = e.progress != null ? e.progress : "";
       if (book.pages) input.max = String(book.pages);
       input.setAttribute("aria-label", "Aktuelle Seite");
-      unit.textContent = book.pages ? `/ ${book.pages}` : "";
+      unit.textContent = "";
     } else if (mode === "chapter") {
       input.value = e.progressChapter != null ? e.progressChapter : "";
       input.max = String(e.chaptersTotal);
       input.setAttribute("aria-label", "Aktuelles Kapitel");
-      unit.textContent = `/ ${e.chaptersTotal}`;
+      unit.textContent = "";
     } else {
       input.value = e.progressPercent != null ? e.progressPercent : "";
       input.max = "100";
@@ -931,7 +931,7 @@ function heroCard(book) {
   renderForm();
 
   const msg = el("div", { className: "meta", role: "status" });
-  const saveBtn = el("button", { className: "btn", type: "button" }, "Aktualisieren");
+  const saveBtn = el("button", { className: "btn", type: "button" }, "Update");
   saveBtn.onclick = async () => {
     if (input.value === "") return;
     const value = Math.max(0, Math.round(Number(input.value)));
