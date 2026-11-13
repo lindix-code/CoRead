@@ -795,6 +795,19 @@ function todayLocal() {
   return new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 
+// Darstellung des aktuellen Buchs: groß oder kompakt (pro Gerät gemerkt)
+let heroCompact = false;
+try {
+  heroCompact = localStorage.getItem("coread-hero-compact") === "1";
+} catch (e) {}
+function setHeroCompact(value) {
+  heroCompact = value;
+  try {
+    localStorage.setItem("coread-hero-compact", value ? "1" : "0");
+  } catch (e) {}
+  renderHome();
+}
+
 function heroCard(book) {
   const page = book.entry.progress || 0;
   const pct = book.pages ? Math.min(100, Math.round((page / book.pages) * 100)) : null;
@@ -828,10 +841,26 @@ function heroCard(book) {
   };
   detailBtn.onclick = () => showDetail(book);
 
+  const toggle = el("button", { className: "hero-toggle", type: "button" }, heroCompact ? "Größer ⌄" : "Kleiner ⌃");
+  toggle.setAttribute("aria-label", heroCompact ? "Aktuelles Buch groß anzeigen" : "Aktuelles Buch kompakt anzeigen");
+  toggle.onclick = () => setHeroCompact(!heroCompact);
+  const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, "Ich lese gerade"), toggle);
+
+  if (heroCompact) {
+    // Kompakte Variante: kleines Cover, Titel, dünner Balken, Seite direkt eintragen
+    const title = el("button", { className: "hero-title-btn", type: "button" }, book.title);
+    title.onclick = () => showDetail(book);
+    const small = el("button", { className: "btn small", type: "button" }, "Speichern");
+    small.onclick = saveBtn.onclick;
+    const row = el("div", { className: "hero-compact-row" }, progressText, input, small);
+    const cinfo = el("div", { className: "hero-info" }, labelRow, title, el("div", { className: "author" }, book.authors.join(", ")), bar, row, msg);
+    return el("div", { className: "hero compact" }, el("div", { className: "hero-cover" }, coverElement(book)), cinfo);
+  }
+
   const info = el(
     "div",
     { className: "hero-info" },
-    el("div", { className: "hero-label" }, "Ich lese gerade"),
+    labelRow,
     el("h2", {}, book.title),
     el("div", { className: "author" }, book.authors.join(", ")),
     bar,

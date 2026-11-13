@@ -449,3 +449,21 @@ header { flex-wrap: wrap; gap: 4px; }
   #add-lang { flex: 1 1 0; min-width: 0; }
   #add-form button[type="submit"] { flex: 1 1 0; }
 }
+
+/* Aktuelles Buch: Umschalter und kompakte Variante */
+.hero-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.hero-toggle { border: 0; background: #f1e9e1; color: #6b3f2a; border-radius: 14px; padding: 4px 10px; font-size: 0.78rem; cursor: pointer; }
+.hero.compact { flex-direction: row; align-items: flex-start; text-align: left; gap: 12px; padding: 10px 12px; }
+.hero.compact .hero-cover { width: 56px; }
+.hero.compact .hero-info { width: auto; }
+.hero.compact .hero-title-btn {
+  display: block; max-width: 100%; margin: 2px 0 0; padding: 0; border: 0; background: none;
+  font: inherit; font-size: 1.05rem; font-weight: 700; color: inherit; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;
+}
+.hero.compact .author { font-size: 0.85rem; }
+.hero.compact .bar { height: 8px; margin-top: 8px; }
+.hero-compact-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.hero-compact-row .progress-text { flex: 1; margin: 0; font-size: 0.8rem; min-width: 0; }
+.hero-compact-row input { width: 64px; padding: 5px 6px; font-size: 0.9rem; border: 1px solid #cbbfb4; border-radius: 6px; }
+.hero-compact-row .btn { padding: 5px 10px; font-size: 0.8rem; }
