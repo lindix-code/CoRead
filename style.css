@@ -487,3 +487,15 @@ header { flex-wrap: wrap; gap: 4px; }
   .progress-input { justify-content: center; }
   .hero.compact .progress-input { justify-content: flex-start; }
 }
+
+/* Fortschritt: Variante per Dropdown, alles in einer Zeile */
+.mode-select { padding: 8px 6px; font-size: 0.95rem; border: 1px solid #cbbfb4; border-radius: 8px; background: #fff; color: #3b2a20; }
+.hero.compact .mode-select { padding: 5px 4px; font-size: 0.85rem; }
+.progress-input { flex-wrap: nowrap; }
+.progress-input input { width: 70px; min-width: 0; }
+.hero.compact .progress-input input { width: 56px; }
+.progress-input .btn { white-space: nowrap; }
+@media (max-width: 520px) {
+  .progress-input { justify-content: center; flex-wrap: wrap; }
+  .hero.compact .progress-input { justify-content: flex-start; flex-wrap: nowrap; gap: 4px; }
+}

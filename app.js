@@ -871,16 +871,14 @@ function heroCard(book) {
   const total = el("input", { type: "number", min: "1", step: "1", placeholder: "von" });
   total.setAttribute("aria-label", "Anzahl Kapitel gesamt");
   const unit = el("span", { className: "progress-unit" });
-  const segs = PROGRESS_MODES.map(([key, label]) => {
-    const b = el("button", { type: "button", className: "seg" }, label);
-    b.onclick = () => {
-      mode = key;
-      renderForm();
-    };
-    return b;
-  });
+  const modeSelect = el("select", { className: "mode-select" }, ...PROGRESS_MODES.map(([key, label]) => el("option", { value: key }, label)));
+  modeSelect.setAttribute("aria-label", "Fortschritt angeben in");
+  modeSelect.onchange = () => {
+    mode = modeSelect.value;
+    renderForm();
+  };
   function renderForm() {
-    segs.forEach((b, i) => b.classList.toggle("on", PROGRESS_MODES[i][0] === mode));
+    modeSelect.value = mode;
     total.hidden = mode !== "chapter";
     input.removeAttribute("max");
     if (mode === "page") {
@@ -941,7 +939,7 @@ function heroCard(book) {
   toggle.onclick = () => setHeroCompact(!heroCompact);
   const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, "Ich lese gerade"), toggle);
 
-  const form = el("div", { className: "progress-form" }, el("div", { className: "segs" }, ...segs), el("div", { className: "progress-input" }, input, total, unit, saveBtn));
+  const form = el("div", { className: "progress-form" }, el("div", { className: "progress-input" }, modeSelect, input, total, unit, saveBtn));
 
   // Cover antippen öffnet die Details
   const cover = el("div", { className: "hero-cover tappable" }, coverElement(book));
