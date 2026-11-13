@@ -60,16 +60,68 @@ function toBook(item) {
   };
 }
 
-async function searchBooks(input) {
+async function searchGoogle(input) {
   const params = new URLSearchParams({
     q: buildQuery(input),
     maxResults: "20",
     printType: "books",
   });
   const res = await fetch(`${GOOGLE_BOOKS_URL}?${params}`);
-  if (!res.ok) throw new Error("Die Suche ist gerade nicht erreichbar.");
+  if (!res.ok) throw new Error(`Google Books Fehler ${res.status}`);
   const data = await res.json();
   return (data.items || []).map(toBook);
+}
+
+// Ersatzquelle, falls Google Books nicht antwortet (z. B. wegen Anfragelimit)
+async function searchOpenLibrary(input) {
+  const text = input.trim();
+  const params = new URLSearchParams({
+    limit: "20",
+    fields:
+      "key,title,subtitle,author_name,publisher,first_publish_year,number_of_pages_median,language,subject,isbn,cover_i",
+  });
+  if (isIsbn(text)) params.set("q", "isbn:" + text.replace(/[-\s]/g, ""));
+  else params.set("q", text);
+  const res = await fetch(`https://openlibrary.org/search.json?${params}`);
+  if (!res.ok) throw new Error(`Open Library Fehler ${res.status}`);
+  const data = await res.json();
+  return (data.docs || []).map((d) => {
+    const isbn = (d.isbn || []).find((i) => i.length === 13) || (d.isbn || [])[0] || null;
+    const cover = d.cover_i
+      ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
+      : isbn
+        ? openLibraryCover(isbn)
+        : null;
+    return {
+      id: "ol:" + d.key,
+      title: d.title || "Ohne Titel",
+      subtitle: d.subtitle || "",
+      authors: d.author_name || [],
+      publisher: (d.publisher || [])[0] || "",
+      publishedDate: d.first_publish_year ? String(d.first_publish_year) : "",
+      pages: d.number_of_pages_median || null,
+      language: (d.language || [])[0] || "",
+      categories: (d.subject || []).slice(0, 3),
+      description: "",
+      isbn,
+      cover,
+      fallbackCover: isbn ? openLibraryCover(isbn) : null,
+    };
+  });
+}
+
+async function searchBooks(input) {
+  try {
+    return await searchGoogle(input);
+  } catch (googleError) {
+    try {
+      return await searchOpenLibrary(input);
+    } catch (openLibraryError) {
+      throw new Error(
+        `Die Suche ist gerade nicht erreichbar (${googleError.message}; ${openLibraryError.message}).`
+      );
+    }
+  }
 }
 
 // ---------- Datenbank (Supabase) ----------
