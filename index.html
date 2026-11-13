@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoRead</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>CoRead</h1>
+    <nav>
+      <button id="tab-search" class="tab active">Suche</button>
+      <button id="tab-library" class="tab">Bibliothek</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="view-search">
+      <form id="search-form">
+        <input id="query" type="search" placeholder="Titel, Autor:in oder ISBN" autocomplete="off" required>
+        <button type="submit">Suchen</button>
+      </form>
+      <p id="status" role="status"></p>
+      <div id="results" class="grid"></div>
+    </section>
+
+    <section id="view-library" hidden>
+      <p id="library-status" role="status"></p>
+      <div id="library" class="grid"></div>
+    </section>
+  </main>
+
+  <dialog id="detail">
+    <button id="close" class="close" aria-label="Schließen">×</button>
+    <div id="detail-content"></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
