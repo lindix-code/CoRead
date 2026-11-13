@@ -186,7 +186,7 @@ function bookToDb(book) {
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, owned, audiobook, started_at, finished_at, custom_cover, progress_page, rating, books(*)")
+    .select("status, owned, audiobook, started_at, finished_at, custom_cover, progress_page, progress_mode, progress_chapter, chapters_total, progress_percent, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
@@ -202,6 +202,10 @@ async function fetchLibrary(userId) {
       startedAt: r.started_at,
       finishedAt: r.finished_at,
       progress: r.progress_page,
+      progressMode: r.progress_mode,
+      progressChapter: r.progress_chapter,
+      chaptersTotal: r.chapters_total,
+      progressPercent: r.progress_percent,
       rating: r.rating,
     },
   }));
@@ -214,8 +218,16 @@ async function saveEntry(book, entry) {
     .upsert(bookToDb(book), { onConflict: "id", ignoreDuplicates: true });
   if (bookError) throw bookError;
 
+  // Fortschritts-Varianten nur schreiben, wenn sie mitgegeben werden (sonst bleiben die Werte erhalten)
+  const extra = {};
+  if (entry.progressMode !== undefined) extra.progress_mode = entry.progressMode;
+  if (entry.progressChapter !== undefined) extra.progress_chapter = entry.progressChapter;
+  if (entry.chaptersTotal !== undefined) extra.chapters_total = entry.chaptersTotal;
+  if (entry.progressPercent !== undefined) extra.progress_percent = entry.progressPercent;
+
   const { error } = await sb.from("library_entries").upsert(
     {
+      ...extra,
       user_id: me.id,
       book_id: book.id,
       status: entry.status,
@@ -808,29 +820,109 @@ function setHeroCompact(value) {
   renderHome();
 }
 
-function heroCard(book) {
-  const page = book.entry.progress || 0;
+const PROGRESS_MODES = [
+  ["page", "Seite"],
+  ["chapter", "Kapitel"],
+  ["percent", "%"],
+];
+
+function lastProgressMode() {
+  try {
+    const m = localStorage.getItem("coread-progress-mode");
+    if (PROGRESS_MODES.some(([key]) => key === m)) return m;
+  } catch (e) {}
+  return "page";
+}
+
+// Text und Prozentwert für die Anzeige, je nach gespeicherter Variante
+function progressInfo(book) {
+  const e = book.entry;
+  const mode = e.progressMode || "page";
+  if (mode === "chapter") {
+    const ch = e.progressChapter || 0;
+    if (e.chaptersTotal) {
+      const pct = Math.min(100, Math.round((ch / e.chaptersTotal) * 100));
+      return { pct, text: `Kapitel ${ch} von ${e.chaptersTotal} · ${pct} %` };
+    }
+    return { pct: 0, text: `Kapitel ${ch}` };
+  }
+  if (mode === "percent") {
+    const pct = Math.min(100, e.progressPercent || 0);
+    return { pct, text: `${pct} %` };
+  }
+  const page = e.progress || 0;
   const pct = book.pages ? Math.min(100, Math.round((page / book.pages) * 100)) : null;
+  return { pct: pct || 0, text: pct != null ? `Seite ${page} von ${book.pages} · ${pct} %` : `Seite ${page}` };
+}
+
+function heroCard(book) {
+  const e = book.entry;
+  const info = progressInfo(book);
+  const compact = heroCompact;
 
   const fill = el("div", { className: "bar-fill" });
-  fill.style.width = (pct || 0) + "%";
+  fill.style.width = info.pct + "%";
   const bar = el("div", { className: "bar" }, fill);
-  const progressText = el(
-    "div",
-    { className: "progress-text" },
-    pct != null ? `Seite ${page} von ${book.pages} · ${pct} %` : `Seite ${page}`
-  );
+  const progressText = el("div", { className: "progress-text" }, info.text);
 
-  const input = el("input", { type: "number", min: "0", value: page, "aria-label": "Aktuelle Seite" });
-  if (book.pages) input.max = String(book.pages);
-  const saveBtn = el("button", { className: "btn", type: "button" }, "Seite speichern");
-  const detailBtn = el("button", { className: "btn secondary", type: "button" }, "Details");
+  // Eingabe: Variante wählen (Seite / Kapitel / Prozent), Wert eintragen
+  let mode = e.progressMode || lastProgressMode();
+  const input = el("input", { type: "number", min: "0", step: "1" });
+  const total = el("input", { type: "number", min: "1", step: "1", placeholder: "von" });
+  total.setAttribute("aria-label", "Anzahl Kapitel gesamt");
+  const unit = el("span", { className: "progress-unit" });
+  const segs = PROGRESS_MODES.map(([key, label]) => {
+    const b = el("button", { type: "button", className: "seg" }, label);
+    b.onclick = () => {
+      mode = key;
+      renderForm();
+    };
+    return b;
+  });
+  function renderForm() {
+    segs.forEach((b, i) => b.classList.toggle("on", PROGRESS_MODES[i][0] === mode));
+    total.hidden = mode !== "chapter";
+    input.removeAttribute("max");
+    if (mode === "page") {
+      input.value = e.progress != null ? e.progress : "";
+      if (book.pages) input.max = String(book.pages);
+      input.setAttribute("aria-label", "Aktuelle Seite");
+      unit.textContent = book.pages ? `/ ${book.pages}` : "";
+    } else if (mode === "chapter") {
+      input.value = e.progressChapter != null ? e.progressChapter : "";
+      total.value = e.chaptersTotal != null ? e.chaptersTotal : "";
+      input.setAttribute("aria-label", "Aktuelles Kapitel");
+      unit.textContent = "";
+    } else {
+      input.value = e.progressPercent != null ? e.progressPercent : "";
+      input.max = "100";
+      input.setAttribute("aria-label", "Fortschritt in Prozent");
+      unit.textContent = "%";
+    }
+  }
+  renderForm();
+
   const msg = el("div", { className: "meta", role: "status" });
+  const saveBtn = el("button", { className: "btn", type: "button" }, "Aktualisieren");
   saveBtn.onclick = async () => {
     if (input.value === "") return;
+    const value = Math.max(0, Math.round(Number(input.value)));
+    const fields = { progressMode: mode };
+    if (mode === "page") {
+      fields.progress = value;
+    } else if (mode === "chapter") {
+      fields.progressChapter = value;
+      if (total.value !== "") fields.chaptersTotal = Math.max(1, Math.round(Number(total.value)));
+    } else {
+      fields.progressPercent = Math.min(100, value);
+      if (book.pages) fields.progress = Math.round((fields.progressPercent / 100) * book.pages); // Seitenzahl mitführen
+    }
     saveBtn.disabled = true;
     try {
-      await saveEntry(book, { ...book.entry, progress: Number(input.value) });
+      await saveEntry(book, { ...e, ...fields });
+      try {
+        localStorage.setItem("coread-progress-mode", mode);
+      } catch (err) {}
       homeBookId = book.id;
       await reloadMyLibrary();
       renderHome();
@@ -839,36 +931,29 @@ function heroCard(book) {
       saveBtn.disabled = false;
     }
   };
-  detailBtn.onclick = () => showDetail(book);
+  if (compact) saveBtn.classList.add("small");
 
-  const toggle = el("button", { className: "hero-toggle", type: "button" }, heroCompact ? "Größer ⌄" : "Kleiner ⌃");
-  toggle.setAttribute("aria-label", heroCompact ? "Aktuelles Buch groß anzeigen" : "Aktuelles Buch kompakt anzeigen");
+  const toggle = el("button", { className: "hero-toggle", type: "button" });
+  toggle.innerHTML = compact
+    ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>';
+  toggle.setAttribute("aria-label", compact ? "Aktuelles Buch groß anzeigen" : "Aktuelles Buch kompakt anzeigen");
   toggle.onclick = () => setHeroCompact(!heroCompact);
   const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, "Ich lese gerade"), toggle);
 
-  if (heroCompact) {
-    // Kompakte Variante: kleines Cover, Titel, dünner Balken, Seite direkt eintragen
-    const title = el("button", { className: "hero-title-btn", type: "button" }, book.title);
-    title.onclick = () => showDetail(book);
-    const small = el("button", { className: "btn small", type: "button" }, "Speichern");
-    small.onclick = saveBtn.onclick;
-    const row = el("div", { className: "hero-compact-row" }, progressText, input, small);
-    const cinfo = el("div", { className: "hero-info" }, labelRow, title, el("div", { className: "author" }, book.authors.join(", ")), bar, row, msg);
-    return el("div", { className: "hero compact" }, el("div", { className: "hero-cover" }, coverElement(book)), cinfo);
-  }
+  const form = el("div", { className: "progress-form" }, el("div", { className: "segs" }, ...segs), el("div", { className: "progress-input" }, input, total, unit, saveBtn));
 
-  const info = el(
-    "div",
-    { className: "hero-info" },
-    labelRow,
-    el("h2", {}, book.title),
-    el("div", { className: "author" }, book.authors.join(", ")),
-    bar,
-    progressText,
-    el("div", { className: "actions" }, input, saveBtn, detailBtn),
-    msg
-  );
-  return el("div", { className: "hero" }, el("div", { className: "hero-cover" }, coverElement(book)), info);
+  // Cover antippen öffnet die Details
+  const cover = el("div", { className: "hero-cover tappable" }, coverElement(book));
+  cover.setAttribute("role", "button");
+  cover.setAttribute("aria-label", `Details zu ${book.title}`);
+  cover.onclick = () => showDetail(book);
+
+  const authors = el("div", { className: "author" }, book.authors.join(", "));
+  const body = compact
+    ? el("div", { className: "hero-info" }, labelRow, el("div", { className: "hero-title-btn" }, book.title), authors, bar, progressText, form, msg)
+    : el("div", { className: "hero-info" }, labelRow, el("h2", {}, book.title), authors, bar, progressText, form, msg);
+  return el("div", { className: compact ? "hero compact" : "hero" }, cover, body);
 }
 
 function renderHome() {

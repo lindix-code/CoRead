@@ -467,3 +467,23 @@ header { flex-wrap: wrap; gap: 4px; }
 .hero-compact-row .progress-text { flex: 1; margin: 0; font-size: 0.8rem; min-width: 0; }
 .hero-compact-row input { width: 64px; padding: 5px 6px; font-size: 0.9rem; border: 1px solid #cbbfb4; border-radius: 6px; }
 .hero-compact-row .btn { padding: 5px 10px; font-size: 0.8rem; }
+
+/* Fortschritt: Varianten und Umschalter */
+.hero-toggle { width: 34px; height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #e7ddd2; color: #4a2a1a; line-height: 0; }
+.hero-cover.tappable { cursor: pointer; }
+.progress-form { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.segs { display: inline-flex; align-self: flex-start; border: 1px solid #cbbfb4; border-radius: 16px; overflow: hidden; }
+.seg { border: 0; background: #fff; color: #5d524b; padding: 5px 12px; font-size: 0.85rem; cursor: pointer; }
+.seg.on { background: #6b3f2a; color: #fff; }
+.progress-input { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.progress-input input { width: 80px; padding: 8px; font-size: 1rem; border: 1px solid #cbbfb4; border-radius: 8px; }
+.progress-unit { font-size: 0.9rem; color: #5d524b; }
+.hero.compact .progress-form { margin-top: 6px; gap: 6px; }
+.hero.compact .seg { padding: 3px 10px; font-size: 0.78rem; }
+.hero.compact .progress-input input { width: 64px; padding: 5px 6px; font-size: 0.9rem; }
+@media (max-width: 520px) {
+  .segs { align-self: center; }
+  .hero.compact .segs { align-self: flex-start; }
+  .progress-input { justify-content: center; }
+  .hero.compact .progress-input { justify-content: flex-start; }
+}
