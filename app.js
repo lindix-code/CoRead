@@ -688,6 +688,48 @@ function renderHome() {
   $("year-label").textContent = `Gelesen ${year}`;
   $("year-count").textContent = booksReadIn(year).length;
   renderYearOverview();
+
+  $("stack-count").textContent = stackBooks().length;
+  renderStackOverview();
+}
+
+let stackOpen = false;
+
+// Stapel ungelesener Bücher (SuB): im Regal, aber weder gelesen noch gerade in Arbeit
+function stackBooks() {
+  return myLibrary.filter((b) => b.entry.owned && (!b.entry.status || b.entry.status === "want"));
+}
+
+function renderStackOverview() {
+  const box = $("stack-overview");
+  $("tile-stack").setAttribute("aria-expanded", String(stackOpen));
+  box.hidden = !stackOpen;
+  if (!stackOpen) return;
+
+  const books = stackBooks();
+  if (!books.length) {
+    box.replaceChildren(
+      el("p", { className: "meta" }, "Dein Stapel ist leer. Hier landen Bücher aus deinem Bücherregal, die du noch nicht gelesen hast.")
+    );
+    return;
+  }
+  const rows = books.map((book) => {
+    const row = el("button", { className: "row", type: "button" });
+    const info = el(
+      "div",
+      { className: "row-info" },
+      el("div", { className: "title" }, book.title),
+      el("div", { className: "author" }, book.authors.join(", ")),
+      el("div", { className: "meta" }, book.entry.status === "want" ? "Möchte ich lesen" : "Nur im Regal")
+    );
+    row.append(el("div", { className: "row-cover" }, coverElement(book)), info);
+    row.onclick = () => showDetail(book);
+    return row;
+  });
+  box.replaceChildren(
+    el("h3", {}, `Stapel ungelesener Bücher: ${books.length} ${books.length === 1 ? "Buch" : "Bücher"}`),
+    ...rows
+  );
 }
 
 let yearOpen = false;
@@ -789,7 +831,15 @@ $("tile-shelf").onclick = () => {
 };
 $("tile-year").onclick = () => {
   yearOpen = !yearOpen;
+  if (yearOpen) stackOpen = false;
   renderYearOverview();
+  renderStackOverview();
+};
+$("tile-stack").onclick = () => {
+  stackOpen = !stackOpen;
+  if (stackOpen) yearOpen = false;
+  renderYearOverview();
+  renderStackOverview();
 };
 
 // ---------- Verbindung ----------

@@ -164,7 +164,7 @@ header { flex-wrap: wrap; gap: 4px; }
 .progress-text { font-size: 0.9rem; color: #5d524b; margin-top: 6px; }
 .hero-info .actions input { width: 90px; padding: 8px; font-size: 1rem; border: 1px solid #cbbfb4; border-radius: 8px; }
 .hero-info .actions .btn { padding: 8px 12px; font-size: 0.9rem; }
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
 .tile {
   display: flex;
   flex-direction: column;
@@ -184,6 +184,8 @@ header { flex-wrap: wrap; gap: 4px; }
 .tile-number { font-size: 2.6rem; font-weight: 700; color: #6b3f2a; line-height: 1.1; }
 .tile-sub { font-size: 0.8rem; color: #7a6e65; }
 @media (max-width: 520px) {
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .tile:nth-child(3) { grid-column: 1 / -1; }
   .hero { flex-direction: column; align-items: center; text-align: center; }
   .hero-info { width: 100%; }
   .hero-info .actions { justify-content: center; flex-wrap: wrap; }
