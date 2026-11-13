@@ -267,3 +267,8 @@ create policy "post_images_delete" on storage.objects for delete to authenticate
 alter table public.posts
   add column if not exists rating smallint check (rating between 1 and 5),
   add column if not exists auto boolean not null default false;
+
+-- ---------- Lesezeitraum in Beiträgen (Migration 007) ----------
+alter table public.posts
+  add column if not exists started_at date,
+  add column if not exists finished_at date;
