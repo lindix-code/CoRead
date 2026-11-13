@@ -324,7 +324,8 @@ function entryLine(book) {
 // Kleines Kopfhörer-Symbol für Hörbücher
 function audioBadge(book) {
   if (!book.entry || !book.entry.audiobook) return "";
-  const badge = el("span", { className: "badge-audio", title: "Hörbuch" }, "🎧");
+  const badge = el("span", { className: "badge-audio", title: "Hörbuch" });
+  badge.append(el("img", { src: "assets/kopfhoerer.png", alt: "" }));
   badge.setAttribute("role", "img");
   badge.setAttribute("aria-label", "Hörbuch");
   return badge;
