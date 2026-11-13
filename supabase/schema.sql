@@ -114,6 +114,7 @@ create table public.library_entries (
   owned boolean not null default false,                       -- steht im Bücherregal
   progress_page int check (progress_page >= 0),
   rating smallint check (rating between 1 and 5),
+  custom_cover text,                                          -- eigenes Cover (URL im Storage)
   started_at date,                                            -- Begonnen am
   finished_at date,                                           -- Lesedatum (für den Jahres-Tracker)
   added_at timestamptz not null default now(),
@@ -205,3 +206,15 @@ create policy "list_items_select" on public.list_items for select to authenticat
 create policy "list_items_write" on public.list_items for all to authenticated
   using (exists (select 1 from public.reading_lists l where l.id = list_id and l.user_id = auth.uid()))
   with check (exists (select 1 from public.reading_lists l where l.id = list_id and l.user_id = auth.uid()));
+
+-- ---------- Storage für eigene Cover ----------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('covers', 'covers', true, 2097152, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;
+
+create policy "covers_insert_own" on storage.objects for insert to authenticated
+  with check (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "covers_update_own" on storage.objects for update to authenticated
+  using (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "covers_delete_own" on storage.objects for delete to authenticated
+  using (bucket_id = 'covers' and (storage.foldername(name))[1] = auth.uid()::text);
