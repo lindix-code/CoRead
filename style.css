@@ -511,3 +511,14 @@ header { flex-wrap: wrap; gap: 4px; }
   .hero .hero-cover { width: 150px; }
   .hero.compact .hero-cover { width: 115px; }
 }
+
+/* Handy: große Ansicht mittig, kompakte Ansicht mit höherem Cover */
+@media (max-width: 520px) {
+  .hero:not(.compact) { align-items: center; }
+  .hero:not(.compact) .hero-info { width: 100%; }
+  .hero:not(.compact) .hero-top { justify-content: center; position: relative; }
+  .hero:not(.compact) .hero-toggle { position: absolute; right: 0; top: 0; }
+  .hero.compact .hero-cover { width: 84px; }
+  .hero.compact .progress-input .btn { padding: 5px 8px; font-size: 0.78rem; }
+  .hero.compact .progress-input input { width: 52px; }
+}

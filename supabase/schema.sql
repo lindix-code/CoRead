@@ -119,6 +119,7 @@ create table public.library_entries (
   progress_chapter int,
   chapters_total int,
   progress_percent int,
+  pages_total int,                                            -- eigene Seitenzahl, falls die Datenquelle keine hat
   rating smallint check (rating between 1 and 5),
   custom_cover text,                                          -- eigenes Cover (URL im Storage)
   started_at date,                                            -- Begonnen am
