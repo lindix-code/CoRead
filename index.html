@@ -77,7 +77,10 @@
         <button id="lib-mine" class="btn" type="button">Meine</button>
         <button id="lib-friend" class="btn secondary" type="button" hidden></button>
       </div>
-      <input id="lib-search" class="lib-search" type="search" placeholder="Suchen (Titel, Autor:in, Verlag, Genre, ISBN …)" autocomplete="off">
+      <div class="lib-toolbar">
+        <input id="lib-search" class="lib-search" type="search" placeholder="Bibliothek durchsuchen" autocomplete="off">
+        <button id="lib-add" class="btn add-btn" type="button" aria-label="Buch hinzufügen" title="Buch hinzufügen">+</button>
+      </div>
       <div id="lib-lists" class="actions subtabs"></div>
       <p id="library-status" role="status"></p>
       <div id="library" class="grid"></div>
@@ -97,6 +100,21 @@
       </div>
     </section>
   </main>
+
+  <dialog id="add-dialog">
+    <button id="add-close" class="close" aria-label="Schließen">×</button>
+    <h2 id="add-title"></h2>
+    <form id="add-form">
+      <input id="add-query" type="search" placeholder="Titel, Autor:in oder ISBN" autocomplete="off" required>
+      <select id="add-lang" aria-label="Sprache">
+        <option value="de" selected>Deutsch</option>
+        <option value="">Alle Sprachen</option>
+      </select>
+      <button type="submit">Suchen</button>
+    </form>
+    <p id="add-status" role="status"></p>
+    <div id="add-results" class="grid"></div>
+  </dialog>
 
   <dialog id="detail">
     <button id="close" class="close" aria-label="Schließen">×</button>

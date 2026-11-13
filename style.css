@@ -236,7 +236,8 @@ header { flex-wrap: wrap; gap: 4px; }
 
 /* Suche in der Bibliothek */
 .lib-search {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 10px 12px;
   font-size: 1rem;
   border: 1px solid #cbbfb4;
@@ -244,3 +245,24 @@ header { flex-wrap: wrap; gap: 4px; }
   background: #fff;
   margin-top: 4px;
 }
+
+.lib-toolbar { display: flex; gap: 8px; margin-top: 4px; }
+.lib-toolbar .lib-search { margin-top: 0; }
+.add-btn { width: 46px; padding: 0; font-size: 1.7rem; line-height: 1; }
+#add-form { display: flex; gap: 8px; margin: 12px 0 4px; }
+#add-query {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border: 1px solid #cbbfb4;
+  border-radius: 8px;
+}
+#add-lang {
+  padding: 10px 8px;
+  font-size: 1rem;
+  border: 1px solid #cbbfb4;
+  border-radius: 8px;
+  background: #fff;
+}
+#add-title { margin: 0 32px 0 0; font-size: 1.15rem; }

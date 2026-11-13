@@ -351,7 +351,8 @@ function selectField(label, id, options, value) {
   return el("label", { className: "field" }, label, select);
 }
 
-function showDetail(book, readOnly = false) {
+// preset: Vorbelegung für neue Einträge (kommt vom "+"-Button der jeweiligen Liste)
+function showDetail(book, readOnly = false, preset = null) {
   // Falls das Buch schon in meiner Bibliothek ist, den gespeicherten Stand zeigen
   const mine = myLibrary.find((b) => b.id === book.id);
   const entry = readOnly ? book.entry : mine && mine.entry;
@@ -401,9 +402,9 @@ function showDetail(book, readOnly = false) {
       "Status",
       "f-status",
       [["", "Keine Leseliste"], ...Object.entries(STATUS)],
-      entry ? entry.status : "want"
+      entry ? entry.status : preset ? preset.status : "want"
     );
-    const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: !!(entry && entry.owned) });
+    const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: entry ? !!entry.owned : !!(preset && preset.owned) });
     const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal (gekauft)");
     const startedInput = el("input", { type: "date", value: (entry && entry.startedAt) || "" });
     const finishedInput = el("input", { type: "date", value: (entry && entry.finishedAt) || "" });
@@ -514,6 +515,7 @@ function showDetail(book, readOnly = false) {
         });
         await reloadMyLibrary();
         $("detail").close();
+        $("add-dialog").close();
         renderLibrary();
         renderHome();
       } catch (err) {
@@ -593,6 +595,7 @@ function matchesQuery(book) {
 function renderLists(books, readOnly) {
   libBooks = books;
   libReadOnly = readOnly;
+  $("lib-add").hidden = readOnly; // bei der Bibliothek der Freundin nicht hinzufügen
   const searching = normalize(libQuery).trim() !== "";
 
   const buttons = LISTS.map(([key, label, test]) => {
@@ -622,6 +625,44 @@ function renderLists(books, readOnly) {
   }
   renderGrid($("library"), shown, readOnly);
 }
+
+// Vorbelegung je Liste beim Hinzufügen über "+"
+const PRESETS = {
+  shelf: { owned: true, status: "" },
+  unread: { owned: true, status: "want" },
+  reading: { owned: false, status: "reading" },
+  read: { owned: false, status: "read" },
+  want: { owned: false, status: "want" },
+};
+
+$("lib-add").onclick = () => {
+  const [, label] = LISTS.find(([key]) => key === libList);
+  $("add-title").textContent = `Buch hinzufügen: ${label}`;
+  $("add-status").textContent = "";
+  $("add-results").replaceChildren();
+  $("add-dialog").showModal();
+  $("add-query").focus();
+};
+$("add-close").onclick = () => $("add-dialog").close();
+$("add-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const preset = PRESETS[libList];
+  $("add-status").textContent = "Suche läuft …";
+  $("add-results").replaceChildren();
+  try {
+    const books = await searchBooks($("add-query").value, $("add-lang").value);
+    $("add-status").textContent = books.length ? `${books.length} Treffer` : "Keine Treffer.";
+    $("add-results").replaceChildren(
+      ...books.map((book) => {
+        const card = bookCard(book, false);
+        card.onclick = () => showDetail(book, false, preset);
+        return card;
+      })
+    );
+  } catch (err) {
+    $("add-status").textContent = err.message;
+  }
+};
 
 $("lib-search").oninput = (event) => {
   libQuery = event.target.value;
