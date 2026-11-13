@@ -405,23 +405,23 @@ function showDetail(book, readOnly = false) {
     );
     const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: !!(entry && entry.owned) });
     const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal (gekauft)");
-    const startedField = el(
-      "label",
-      { className: "field" },
-      "Begonnen am",
-      el("input", { id: "f-started", type: "date", value: (entry && entry.startedAt) || "" })
-    );
-    const finishedField = el(
-      "label",
-      { className: "field" },
-      "Beendet am",
-      el("input", { id: "f-finished", type: "date", value: (entry && entry.finishedAt) || "" })
-    );
+    const startedInput = el("input", { type: "date", value: (entry && entry.startedAt) || "" });
+    const finishedInput = el("input", { type: "date", value: (entry && entry.finishedAt) || "" });
+    // Sobald jemand das Datum selbst anfasst (auch löscht), setzen wir nichts mehr automatisch
+    for (const input of [startedInput, finishedInput]) {
+      input.oninput = () => (input.dataset.touched = "1");
+    }
+    const startedField = el("label", { className: "field" }, "Begonnen am", startedInput);
+    const finishedField = el("label", { className: "field" }, "Beendet am", finishedInput);
     const statusSelect = statusField.querySelector("select");
     const updateDateFields = () => {
-      startedField.hidden = !["reading", "read"].includes(statusSelect.value);
-      finishedField.hidden = statusSelect.value !== "read";
-      progressField.hidden = statusSelect.value !== "reading";
+      const st = statusSelect.value;
+      startedField.hidden = !["reading", "read"].includes(st);
+      finishedField.hidden = st !== "read";
+      progressField.hidden = st !== "reading";
+      // Vorschlag "heute", solange das Feld leer und noch nicht selbst bearbeitet ist
+      if (st === "reading" && !startedInput.value && !startedInput.dataset.touched) startedInput.value = todayLocal();
+      if (st === "read" && !finishedInput.value && !finishedInput.dataset.touched) finishedInput.value = todayLocal();
     };
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
@@ -494,16 +494,27 @@ function showDetail(book, readOnly = false) {
         msg.textContent = "Wähle eine Leseliste oder setze den Haken für das Bücherregal.";
         return;
       }
+      // Unvollständig eingegebene Daten nicht stillschweigend durch "heute" ersetzen
+      if (
+        (!startedField.hidden && startedInput.validity.badInput) ||
+        (!finishedField.hidden && finishedInput.validity.badInput)
+      ) {
+        msg.textContent = "Bitte gib das Datum vollständig ein (Tag, Monat und Jahr) oder lösche es ganz.";
+        return;
+      }
+      const startedAt = !startedField.hidden ? startedInput.value || null : null;
+      const finishedAt = !finishedField.hidden ? finishedInput.value || null : null;
+      if (startedAt && finishedAt && finishedAt < startedAt) {
+        msg.textContent = "Das Enddatum liegt vor dem Startdatum.";
+        return;
+      }
       saveBtn.disabled = true;
       try {
         await saveEntry(book, {
           status,
           owned,
-          startedAt:
-            status === "reading" || status === "read"
-              ? $("f-started").value || (status === "reading" ? todayLocal() : null)
-              : null,
-          finishedAt: status === "read" ? $("f-finished").value || todayLocal() : null,
+          startedAt,
+          finishedAt,
           customCover,
           progress: status === "reading" && $("f-progress").value !== "" ? Number($("f-progress").value) : null,
           rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
