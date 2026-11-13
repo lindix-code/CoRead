@@ -37,6 +37,10 @@
     <section id="view-search" hidden>
       <form id="search-form">
         <input id="query" type="search" placeholder="Titel, Autor:in oder ISBN" autocomplete="off" required>
+        <select id="lang" aria-label="Sprache">
+          <option value="de" selected>Deutsch</option>
+          <option value="">Alle Sprachen</option>
+        </select>
         <button type="submit">Suchen</button>
       </form>
       <p id="status" role="status"></p>

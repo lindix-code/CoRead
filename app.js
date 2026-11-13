@@ -60,12 +60,14 @@ function toBook(item) {
   };
 }
 
-async function searchGoogle(input) {
+async function searchGoogle(input, lang) {
   const params = new URLSearchParams({
     q: buildQuery(input),
     maxResults: "20",
     printType: "books",
   });
+  if (lang) params.set("langRestrict", lang);
+  if (typeof GOOGLE_BOOKS_KEY !== "undefined" && GOOGLE_BOOKS_KEY) params.set("key", GOOGLE_BOOKS_KEY);
   const res = await fetch(`${GOOGLE_BOOKS_URL}?${params}`);
   if (!res.ok) throw new Error(`Google Books Fehler ${res.status}`);
   const data = await res.json();
@@ -73,7 +75,7 @@ async function searchGoogle(input) {
 }
 
 // Ersatzquelle, falls Google Books nicht antwortet (z. B. wegen Anfragelimit)
-async function searchOpenLibrary(input) {
+async function searchOpenLibrary(input, lang) {
   const text = input.trim();
   const params = new URLSearchParams({
     limit: "20",
@@ -82,6 +84,7 @@ async function searchOpenLibrary(input) {
   });
   if (isIsbn(text)) params.set("q", "isbn:" + text.replace(/[-\s]/g, ""));
   else params.set("q", text);
+  if (lang) params.set("lang", lang);
   const res = await fetch(`https://openlibrary.org/search.json?${params}`);
   if (!res.ok) throw new Error(`Open Library Fehler ${res.status}`);
   const data = await res.json();
@@ -110,12 +113,15 @@ async function searchOpenLibrary(input) {
   });
 }
 
-async function searchBooks(input) {
+async function searchBooks(input, lang) {
   try {
-    return await searchGoogle(input);
+    const books = await searchGoogle(input, lang);
+    // Bei Sprachfilter ohne Treffer: ohne Filter nochmal versuchen
+    if (!books.length && lang) return await searchGoogle(input, "");
+    return books;
   } catch (googleError) {
     try {
-      return await searchOpenLibrary(input);
+      return await searchOpenLibrary(input, lang);
     } catch (openLibraryError) {
       throw new Error(
         `Die Suche ist gerade nicht erreichbar (${googleError.message}; ${openLibraryError.message}).`
@@ -531,7 +537,7 @@ $("search-form").onsubmit = async (event) => {
   $("status").textContent = "Suche läuft …";
   $("results").replaceChildren();
   try {
-    const books = await searchBooks($("query").value);
+    const books = await searchBooks($("query").value, $("lang").value);
     $("status").textContent = books.length ? `${books.length} Treffer` : "Keine Treffer.";
     renderGrid($("results"), books);
   } catch (err) {
