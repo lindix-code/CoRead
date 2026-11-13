@@ -15,11 +15,18 @@ let libView = "mine"; // "mine" | "friend"
 let libList = "reading"; // aktive Unterliste in der Bibliothek
 
 // Unterlisten der Bibliothek: [Schlüssel, Name, Filter]
+// Ungelesen = gekauft (im Bücherregal) und will ich noch lesen
+function isUnread(b) {
+  return b.entry.owned && b.entry.status === "want";
+}
+
 const LISTS = [
   ["shelf", "Mein Bücherregal", (b) => b.entry.owned],
+  ["unread", "Ungelesene Bücher", isUnread],
   ["reading", "Lese ich gerade", (b) => b.entry.status === "reading"],
   ["read", "Abgeschlossen", (b) => b.entry.status === "read"],
-  ["want", "Möchte ich lesen", (b) => b.entry.status === "want"],
+  // Wunschliste: will ich lesen, habe ich aber noch nicht gekauft
+  ["want", "Möchte ich lesen", (b) => b.entry.status === "want" && !b.entry.owned],
 ];
 
 // ---------- Buchsuche ----------
@@ -397,7 +404,7 @@ function showDetail(book, readOnly = false) {
       entry ? entry.status : "want"
     );
     const ownedBox = el("input", { id: "f-owned", type: "checkbox", checked: !!(entry && entry.owned) });
-    const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal");
+    const ownedField = el("label", { className: "check" }, ownedBox, " In meinem Bücherregal (gekauft)");
     const startedField = el(
       "label",
       { className: "field" },
@@ -695,9 +702,9 @@ function renderHome() {
 
 let stackOpen = false;
 
-// Stapel ungelesener Bücher (SuB): im Regal, aber weder gelesen noch gerade in Arbeit
+// Stapel ungelesener Bücher (SuB): gekauft (Bücherregal) und noch zu lesen
 function stackBooks() {
-  return myLibrary.filter((b) => b.entry.owned && (!b.entry.status || b.entry.status === "want"));
+  return myLibrary.filter(isUnread);
 }
 
 function renderStackOverview() {
@@ -709,7 +716,7 @@ function renderStackOverview() {
   const books = stackBooks();
   if (!books.length) {
     box.replaceChildren(
-      el("p", { className: "meta" }, "Dein Stapel ist leer. Hier landen Bücher aus deinem Bücherregal, die du noch nicht gelesen hast.")
+      el("p", { className: "meta" }, "Dein Stapel ist leer. Hier landen gekaufte Bücher (im Bücherregal), die du noch lesen möchtest.")
     );
     return;
   }
@@ -720,7 +727,7 @@ function renderStackOverview() {
       { className: "row-info" },
       el("div", { className: "title" }, book.title),
       el("div", { className: "author" }, book.authors.join(", ")),
-      el("div", { className: "meta" }, book.entry.status === "want" ? "Möchte ich lesen" : "Nur im Regal")
+      el("div", { className: "meta" }, "Gekauft, noch ungelesen")
     );
     row.append(el("div", { className: "row-cover" }, coverElement(book)), info);
     row.onclick = () => showDetail(book);
