@@ -987,9 +987,49 @@ function checkClamps() {
 }
 window.addEventListener("resize", checkClamps);
 
+// Lesezeitraum eines Beitrags: aus dem Beitrag, bei eigenen alten Beiträgen ersatzweise aus der Bibliothek
+function postPeriod(post, mine) {
+  const entry = (mine && (myLibrary.find((b) => b.id === post.books.id) || {}).entry) || {};
+  return readingPeriod({
+    startedAt: post.started_at || entry.startedAt || null,
+    finishedAt: post.finished_at || entry.finishedAt || null,
+  });
+}
+
+// Großes Cover links, Angaben rechts: Titel, Autor:in, Sterne, Zeitraum, Nachricht
+function finishedBlock(post, stars, period, message) {
+  const cover = { title: post.books.title, cover: post.books.cover, fallbackCover: null };
+  return el(
+    "div",
+    { className: "auto-body" },
+    el("div", { className: "auto-cover" }, coverElement(cover)),
+    el(
+      "div",
+      { className: "auto-info" },
+      el("h3", {}, post.books.title),
+      el("div", { className: "author" }, (post.books.authors || []).join(", ")),
+      stars || "",
+      period ? el("div", { className: "meta" }, period) : "",
+      el("p", { className: "auto-text" }, message)
+    )
+  );
+}
+
+// Lange Texte: nur die ersten 8 Zeilen zeigen, Rest aufklappbar
+function clampedBody(text) {
+  const body = el("p", { className: "post-body clamp" }, text);
+  const more = el("button", { className: "post-more", type: "button", hidden: true }, "Mehr anzeigen");
+  more.onclick = () => {
+    const open = body.classList.toggle("clamp") === false;
+    more.textContent = open ? "Weniger anzeigen" : "Mehr anzeigen";
+  };
+  return [body, more];
+}
+
 function postCard(post, urls) {
   const mine = post.user_id === me.id;
   const name = mine ? "Du" : (post.profiles && post.profiles.display_name) || "Freundin";
+  const authorName = mine ? me.display_name : (post.profiles && post.profiles.display_name) || "Freundin";
   const card = el(
     "article",
     { className: post.auto ? "post auto" : "post" },
@@ -998,41 +1038,22 @@ function postCard(post, urls) {
   const stars = post.rating
     ? el("div", { className: "post-stars", "aria-label": `${post.rating} von 5 Sternen` }, "★".repeat(post.rating) + "☆".repeat(5 - post.rating))
     : null;
+  const hasImages = (post.images || []).length > 0;
+  // Bewertung = geschriebener Beitrag zu einem Buch mit Sternen (kommt aus dem "Buch abgeschlossen"-Fenster)
+  const isReview = !post.auto && !!post.books && !!post.rating;
+
   if (post.auto && post.books) {
-    // Automatischer "abgeschlossen"-Beitrag: großes Cover links, Angaben rechts
-    const entry = (mine && (myLibrary.find((b) => b.id === post.books.id) || {}).entry) || {};
-    const period = readingPeriod({
-      startedAt: post.started_at || entry.startedAt || null,
-      finishedAt: post.finished_at || entry.finishedAt || null,
-    });
-    const cover = { title: post.books.title, cover: post.books.cover, fallbackCover: null };
-    card.append(
-      el(
-        "div",
-        { className: "auto-body" },
-        el("div", { className: "auto-cover" }, coverElement(cover)),
-        el(
-          "div",
-          { className: "auto-info" },
-          el("h3", {}, post.books.title),
-          el("div", { className: "author" }, (post.books.authors || []).join(", ")),
-          stars || "",
-          period ? el("div", { className: "meta" }, period) : "",
-          el("p", { className: "auto-text" }, post.body)
-        )
-      )
-    );
+    // Automatischer Beitrag: nur Cover + Angaben
+    card.append(finishedBlock(post, stars, postPeriod(post, mine), post.body));
+  } else if (isReview && !hasImages) {
+    // Bewertung ohne Foto: wie der automatische Beitrag, darunter der Text
+    card.append(finishedBlock(post, stars, postPeriod(post, mine), `${authorName} hat „${post.books.title}“ abgeschlossen.`));
+    if (post.title) card.append(el("h3", { className: "review-title" }, post.title));
+    card.append(...clampedBody(post.body));
   } else {
     if (post.title) card.append(el("h3", {}, post.title));
     if (stars && !post.auto) card.append(stars);
-    // Lange Beiträge: nur die ersten 8 Zeilen zeigen, Rest aufklappbar
-    const bodyEl = el("p", { className: "post-body clamp" }, post.body);
-    const more = el("button", { className: "post-more", type: "button", hidden: true }, "Mehr anzeigen");
-    more.onclick = () => {
-      const open = bodyEl.classList.toggle("clamp") === false;
-      more.textContent = open ? "Weniger anzeigen" : "Mehr anzeigen";
-    };
-    card.append(bodyEl, more);
+    card.append(...clampedBody(post.body));
     if (stars && post.auto) card.append(stars);
 
     const images = (post.images || []).map((path) => urls[path]).filter(Boolean);
@@ -1047,12 +1068,19 @@ function postCard(post, urls) {
     }
     if (post.books) {
       const book = { title: post.books.title, cover: post.books.cover, fallbackCover: null };
+      const period = isReview ? postPeriod(post, mine) : "";
       card.append(
         el(
           "div",
           { className: "post-book" },
           el("div", { className: "row-cover" }, coverElement(book)),
-          el("div", {}, el("div", { className: "title" }, post.books.title), el("div", { className: "author" }, (post.books.authors || []).join(", ")))
+          el(
+            "div",
+            {},
+            el("div", { className: "title" }, post.books.title),
+            el("div", { className: "author" }, (post.books.authors || []).join(", ")),
+            period ? el("div", { className: "meta" }, period) : ""
+          )
         )
       );
     }

@@ -375,3 +375,5 @@ header { flex-wrap: wrap; gap: 4px; }
 .auto-info h3 { margin: 0 0 2px; font-size: 1.2rem; }
 .auto-info .post-stars { margin: 6px 0 4px; font-size: 1.25rem; }
 .auto-text { margin: 10px 0 0; line-height: 1.4; }
+
+.review-title { margin: 4px 0 2px; font-size: 1.1rem; }
