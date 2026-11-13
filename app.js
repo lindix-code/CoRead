@@ -569,10 +569,10 @@ async function renderLibrary() {
   }
 }
 
-// Zeigt die Unterlisten (Regal, Lese ich gerade, Abgeschlossen, Möchte ich lesen)
 let libBooks = [];
 let libReadOnly = false;
 let libQuery = "";
+let libSort = "added";
 
 function normalize(text) {
   return String(text || "")
@@ -589,6 +589,35 @@ function matchesQuery(book) {
     [book.title, book.subtitle, book.authors.join(" "), book.publisher, book.categories.join(" "), book.isbn, book.publishedDate].join(" ")
   );
   return words.every((w) => hay.includes(w));
+}
+
+const collator = new Intl.Collator("de", { sensitivity: "base", numeric: true });
+
+// Sortierschlüssel Autor:in: Nachname (letztes Wort) des ersten Autors, dann der volle Name
+function authorKey(book) {
+  const first = book.authors[0] || "";
+  const last = first.trim().split(/\s+/).pop() || "";
+  return last + " " + first;
+}
+
+function sortBooks(list) {
+  const sorted = [...list];
+  if (libSort === "title") {
+    sorted.sort((a, b) => collator.compare(a.title, b.title));
+  } else if (libSort === "author") {
+    sorted.sort(
+      (a, b) =>
+        !a.authors.length - !b.authors.length ||
+        collator.compare(authorKey(a), authorKey(b)) ||
+        collator.compare(a.title, b.title)
+    );
+  } else if (libSort === "rating") {
+    // beste zuerst, Bücher ohne Bewertung ans Ende
+    sorted.sort(
+      (a, b) => (b.entry.rating || 0) - (a.entry.rating || 0) || collator.compare(a.title, b.title)
+    );
+  }
+  return sorted; // "added": Reihenfolge der Datenbank (zuletzt hinzugefügt zuerst)
 }
 
 // Zeigt die Unterlisten (Regal, Ungelesen, Lese ich gerade, Abgeschlossen, Möchte ich lesen)
@@ -614,7 +643,7 @@ function renderLists(books, readOnly) {
   $("lib-lists").replaceChildren(...buttons);
 
   const [, label, test] = LISTS.find(([key]) => key === libList);
-  const shown = books.filter(test).filter(matchesQuery);
+  const shown = sortBooks(books.filter(test).filter(matchesQuery));
   const who = readOnly && friend ? friend.display_name + ": " : "";
   if (shown.length) {
     $("library-status").textContent = searching ? `${who}${label}: ${shown.length} Treffer` : `${who}${label}`;
@@ -662,6 +691,11 @@ $("add-form").onsubmit = async (event) => {
   } catch (err) {
     $("add-status").textContent = err.message;
   }
+};
+
+$("lib-sort").onchange = (event) => {
+  libSort = event.target.value;
+  renderLists(libBooks, libReadOnly);
 };
 
 $("lib-search").oninput = (event) => {
@@ -1022,6 +1056,18 @@ $("search-form").onsubmit = async (event) => {
     $("status").textContent = err.message;
   }
 };
+
+// Beim Laden und Neuladen alle Suchfelder leeren (der Browser stellt sonst alte Eingaben wieder her)
+function clearSearchFields() {
+  for (const id of ["search-form", "add-form"]) $(id).reset();
+  $("lib-search").value = "";
+  $("lib-sort").value = "added";
+  libQuery = "";
+  libSort = "added";
+}
+clearSearchFields();
+window.addEventListener("pageshow", clearSearchFields);
+setTimeout(clearSearchFields, 0);
 
 // Auf Login/Logout reagieren (nicht direkt in der Callback-Funktion auf Supabase warten)
 sb.auth.onAuthStateChange((_event, session) => {
