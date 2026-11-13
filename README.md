@@ -47,7 +47,7 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 
 - [x] 10. Aktuelles Buch auf der Startseite größer/kleiner stellen können
 - [ ] 11. Profil: anlegen, Passwort ändern, Farben ändern usw.
-- [ ] 12. Neuer Reiter "BookClub"
+- [ ] 12. Neuer Reiter "BookClub" (Platzhalter in der Navigation ist da, Funktionen fehlen noch)
   - [ ] 12.1 Meilensteine, einzeln und gemeinsam anlegen
   - [ ] 12.2 Badges, die gemeinsam erworben werden
   - [ ] 12.3 Buddy Read: Vorschlag machen, ein Buch parallel gemeinsam zu lesen, inkl. Kommentar-Funktion

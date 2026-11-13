@@ -991,7 +991,7 @@ function renderHome() {
   if (!reading.length) {
     homeBookId = null;
     const searchBtn = el("button", { className: "btn", type: "button" }, "Buch suchen");
-    searchBtn.onclick = () => showTab("search");
+    searchBtn.onclick = () => $("query").focus();
     hero.replaceChildren(
       el("div", { className: "hero empty" }, el("p", {}, "Du liest gerade kein Buch."), searchBtn)
     );
@@ -1673,7 +1673,8 @@ async function onSession(session) {
     friend = null;
     myLibrary = [];
     $("bell").hidden = true;
-    for (const id of ["view-home", "view-search", "view-library", "view-feed", "view-friend"]) $(id).hidden = true;
+    $("tab-profile").hidden = true;
+    for (const id of ["view-home", "view-library", "view-feed", "view-bookclub", "view-profile", "view-friend"]) $(id).hidden = true;
     return;
   }
 
@@ -1682,6 +1683,9 @@ async function onSession(session) {
     if (error) throw error;
     me = data;
     await loadFriend();
+    // Reiter der Freundin: Zaza sieht "Lindi", alle anderen sehen "Zaza"
+    $("tab-friend").textContent = /zaza/i.test(me.display_name || "") ? "Lindi" : "Zaza";
+    $("tab-profile").hidden = false;
     await reloadMyLibrary();
     renderFriendPanel();
     refreshBell();
@@ -1734,7 +1738,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function showTab(name) {
-  for (const n of ["home", "search", "library", "feed", "friend"]) {
+  for (const n of ["home", "library", "feed", "bookclub", "profile", "friend"]) {
     $("view-" + n).hidden = n !== name;
     $("tab-" + n).classList.toggle("active", n === name);
   }
@@ -1747,7 +1751,8 @@ function showTab(name) {
 }
 
 $("tab-home").onclick = () => showTab("home");
-$("tab-search").onclick = () => showTab("search");
+$("tab-bookclub").onclick = () => showTab("bookclub");
+$("tab-profile").onclick = () => showTab("profile");
 $("tab-library").onclick = () => showTab("library");
 $("tab-friend").onclick = () => showTab("friend");
 $("lib-mine").onclick = () => {

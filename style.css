@@ -532,3 +532,8 @@ header { flex-wrap: wrap; gap: 4px; }
   .hero.compact .progress-input .pages-total { width: 78px; min-width: 0; }
   .hero.compact .progress-input .btn { white-space: nowrap; }
 }
+
+/* Suche oben auf der Home-Seite */
+#view-home #search-form { margin-bottom: 8px; }
+#view-home #status { margin: 4px 0 8px; }
+#view-home #results:empty { display: none; }

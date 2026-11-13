@@ -10,12 +10,15 @@
   <header>
     <h1>CoRead</h1>
     <nav id="nav" hidden>
-      <button id="tab-home" class="tab active">Start</button>
-      <button id="tab-search" class="tab">Suche</button>
+      <button id="tab-home" class="tab active">Home</button>
       <button id="tab-library" class="tab">Bibliothek</button>
       <button id="tab-feed" class="tab">Pinnwand</button>
-      <button id="tab-friend" class="tab">Freundin</button>
+      <button id="tab-bookclub" class="tab">BookClub</button>
+      <button id="tab-friend" class="tab">Zaza</button>
     </nav>
+    <button id="tab-profile" class="tab bell" type="button" aria-label="Profil" hidden>
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1.5c0 .8.7 1.5 1.5 1.5h13c.8 0 1.5-.7 1.5-1.5V19c0-2.8-3.6-5-8-5z"/></svg>
+    </button>
     <button id="bell" class="tab bell" type="button" aria-label="Neue Beiträge auf der Pinnwand" hidden>
       <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5c0-3.1-1.64-5.64-4.5-6.32V4a2.5 2.5 0 0 0-5 0v.68C6.63 5.36 5 7.9 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
       <span id="bell-badge" class="bell-badge" hidden>0</span>
@@ -41,6 +44,16 @@
 
     <!-- Startseite -->
     <section id="view-home" hidden>
+      <form id="search-form">
+        <input id="query" type="search" placeholder="Titel, Autor:in oder ISBN" autocomplete="off" required>
+        <select id="lang" aria-label="Sprache">
+          <option value="de" selected>Deutsch</option>
+          <option value="">Alle Sprachen</option>
+        </select>
+        <button type="submit">Suchen</button>
+      </form>
+      <p id="status" role="status"></p>
+      <div id="results" class="grid"></div>
       <div id="home-hero"></div>
       <div class="tiles">
         <button id="tile-shelf" class="tile" type="button">
@@ -59,18 +72,16 @@
       <div id="year-overview" class="overview" hidden></div>
     </section>
 
-    <!-- Suche -->
-    <section id="view-search" hidden>
-      <form id="search-form">
-        <input id="query" type="search" placeholder="Titel, Autor:in oder ISBN" autocomplete="off" required>
-        <select id="lang" aria-label="Sprache">
-          <option value="de" selected>Deutsch</option>
-          <option value="">Alle Sprachen</option>
-        </select>
-        <button type="submit">Suchen</button>
-      </form>
-      <p id="status" role="status"></p>
-      <div id="results" class="grid"></div>
+    <!-- BookClub (Platzhalter) -->
+    <section id="view-bookclub" hidden>
+      <h2>BookClub</h2>
+      <p class="meta">Hier entstehen bald Meilensteine, gemeinsame Badges und Buddy Reads.</p>
+    </section>
+
+    <!-- Profil (Platzhalter) -->
+    <section id="view-profile" hidden>
+      <h2>Profil</h2>
+      <p class="meta">Hier entstehen bald Profil, Passwort und Farben.</p>
     </section>
 
     <!-- Bibliothek -->
