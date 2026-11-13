@@ -37,3 +37,4 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - [ ] 5. Bewertungen und Kommentare
 - [ ] 6. Top-Listen
 - [ ] 7. Optional: ISBN-Barcode-Scan mit der Handykamera
+- [ ] 8. Wöchentlicher automatischer Aufruf (GitHub Action), damit das kostenlose Supabase-Projekt nicht pausiert
