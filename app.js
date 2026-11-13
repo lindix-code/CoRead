@@ -1,14 +1,19 @@
-// CoRead – Schritt 1: Buchsuche mit Steckbrief und Cover.
-// Datenquellen: Google Books API (Metadaten + Cover), Open Library (Cover-Fallback per ISBN).
-// Die Bibliothek wird vorerst nur lokal im Browser gespeichert (localStorage),
-// bis Login und Datenbank (Supabase) folgen.
+// CoRead
+// - Buchsuche: Google Books API (Metadaten + Cover), Open Library als Cover-Fallback
+// - Login, Bibliothek, Lesestatus, Bewertung und Verbindung zur Freundin: Supabase
 
 const GOOGLE_BOOKS_URL = "https://www.googleapis.com/books/v1/volumes";
-const LIBRARY_KEY = "coread-library";
+const STATUS = { want: "Möchte ich lesen", reading: "Lese ich gerade", read: "Gelesen" };
 
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
 
-// ---------- Daten holen ----------
+let me = null; // eigenes Profil
+let friend = null; // Profil der Freundin (oder null)
+let myLibrary = []; // meine Bücher inkl. entry
+let libView = "mine"; // "mine" | "friend"
+
+// ---------- Buchsuche ----------
 
 function isIsbn(text) {
   const digits = text.replace(/[-\s]/g, "");
@@ -21,7 +26,11 @@ function buildQuery(input) {
   return text;
 }
 
-// Wandelt eine Google-Books-Antwort in unser eigenes, einfaches Buchformat um.
+function openLibraryCover(isbn) {
+  return `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
+}
+
+// Google-Books-Antwort -> unser einfaches Buchformat
 function toBook(item) {
   const v = item.volumeInfo || {};
   const ids = v.industryIdentifiers || [];
@@ -51,10 +60,6 @@ function toBook(item) {
   };
 }
 
-function openLibraryCover(isbn) {
-  return `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
-}
-
 async function searchBooks(input) {
   const params = new URLSearchParams({
     q: buildQuery(input),
@@ -67,14 +72,105 @@ async function searchBooks(input) {
   return (data.items || []).map(toBook);
 }
 
-// ---------- Anzeige ----------
+// ---------- Datenbank (Supabase) ----------
+
+function dbToBook(b) {
+  return {
+    id: b.id,
+    title: b.title,
+    subtitle: b.subtitle || "",
+    authors: b.authors || [],
+    publisher: b.publisher || "",
+    publishedDate: b.published_date || "",
+    pages: b.pages,
+    language: b.language || "",
+    categories: b.categories || [],
+    description: b.description || "",
+    isbn: b.isbn,
+    cover: b.cover,
+    fallbackCover: b.isbn ? openLibraryCover(b.isbn) : null,
+  };
+}
+
+function bookToDb(book) {
+  return {
+    id: book.id,
+    title: book.title,
+    subtitle: book.subtitle || null,
+    authors: book.authors,
+    publisher: book.publisher || null,
+    published_date: book.publishedDate || null,
+    pages: book.pages,
+    language: book.language || null,
+    categories: book.categories,
+    description: book.description || null,
+    isbn: book.isbn,
+    cover: book.cover,
+  };
+}
+
+async function fetchLibrary(userId) {
+  const { data, error } = await sb
+    .from("library_entries")
+    .select("status, progress_page, rating, books(*)")
+    .eq("user_id", userId)
+    .order("added_at", { ascending: false });
+  if (error) throw error;
+  return data.map((r) => ({
+    ...dbToBook(r.books),
+    entry: { status: r.status, progress: r.progress_page, rating: r.rating },
+  }));
+}
+
+async function saveEntry(book, entry) {
+  // Buch im gemeinsamen Katalog ablegen (falls noch nicht vorhanden)
+  const { error: bookError } = await sb
+    .from("books")
+    .upsert(bookToDb(book), { onConflict: "id", ignoreDuplicates: true });
+  if (bookError) throw bookError;
+
+  const { error } = await sb.from("library_entries").upsert(
+    {
+      user_id: me.id,
+      book_id: book.id,
+      status: entry.status,
+      progress_page: entry.progress,
+      rating: entry.rating,
+    },
+    { onConflict: "user_id,book_id" }
+  );
+  if (error) throw error;
+}
+
+async function removeEntry(bookId) {
+  const { error } = await sb
+    .from("library_entries")
+    .delete()
+    .eq("user_id", me.id)
+    .eq("book_id", bookId);
+  if (error) throw error;
+}
+
+async function reloadMyLibrary() {
+  myLibrary = await fetchLibrary(me.id);
+}
+
+async function loadFriend() {
+  friend = null;
+  const { data, error } = await sb.from("friendships").select("user_a, user_b");
+  if (error || !data.length) return;
+  const row = data[0];
+  const friendId = row.user_a === me.id ? row.user_b : row.user_a;
+  const { data: profile } = await sb.from("profiles").select("*").eq("id", friendId).single();
+  friend = profile || null;
+}
+
+// ---------- Anzeige-Helfer ----------
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   Object.assign(node, props);
-  for (const child of children) {
-    node.append(child);
-  }
+  for (const child of children) node.append(child);
   return node;
 }
 
@@ -91,19 +187,32 @@ function coverElement(book) {
   return img;
 }
 
-function bookCard(book) {
+function entryLine(book) {
+  const e = book.entry;
+  if (!e) return "";
+  let text = STATUS[e.status];
+  if (e.status === "reading" && e.progress != null) {
+    text += book.pages ? ` (S. ${e.progress}/${book.pages})` : ` (S. ${e.progress})`;
+  }
+  if (e.rating) text += " · " + "★".repeat(e.rating);
+  return text;
+}
+
+function bookCard(book, readOnly) {
   const card = el("button", { className: "card", type: "button" });
   card.append(
     coverElement(book),
     el("div", { className: "title" }, book.title),
     el("div", { className: "author" }, book.authors.join(", "))
   );
-  card.onclick = () => showDetail(book);
+  const line = entryLine(book);
+  if (line) card.append(el("div", { className: "meta" }, line));
+  card.onclick = () => showDetail(book, readOnly);
   return card;
 }
 
-function renderGrid(container, books) {
-  container.replaceChildren(...books.map(bookCard));
+function renderGrid(container, books, readOnly = false) {
+  container.replaceChildren(...books.map((b) => bookCard(b, readOnly)));
 }
 
 function fact(label, value) {
@@ -111,8 +220,20 @@ function fact(label, value) {
   return el("div", {}, `${label}: ${value}`);
 }
 
-function showDetail(book) {
-  const inLibrary = loadLibrary().some((b) => b.id === book.id);
+function selectField(label, id, options, value) {
+  const select = el("select", { id });
+  for (const [val, text] of options) {
+    const opt = el("option", { value: val }, text);
+    if (String(val) === String(value ?? "")) opt.selected = true;
+    select.append(opt);
+  }
+  return el("label", { className: "field" }, label, select);
+}
+
+function showDetail(book, readOnly = false) {
+  // Falls das Buch schon in meiner Bibliothek ist, den gespeicherten Stand zeigen
+  const mine = myLibrary.find((b) => b.id === book.id);
+  const entry = readOnly ? book.entry : mine && mine.entry;
 
   const top = el(
     "div",
@@ -139,85 +260,234 @@ function showDetail(book) {
     )
   );
 
-  const description = el("p", { className: "description" });
   // Beschreibungen von Google können HTML enthalten – wir zeigen nur reinen Text.
   const tmp = document.createElement("div");
   tmp.innerHTML = book.description;
+  const description = el("p", { className: "description" });
   description.textContent = tmp.textContent || "Keine Beschreibung vorhanden.";
 
-  const actionBtn = el(
-    "button",
-    { className: "btn", type: "button" },
-    inLibrary ? "Aus Bibliothek entfernen" : "Zur Bibliothek"
-  );
-  actionBtn.onclick = () => {
-    toggleLibrary(book);
-    $("detail").close();
-    renderLibrary();
-  };
+  const content = el("div", { className: "detail" }, top, description);
 
-  $("detail-content").replaceChildren(
-    el("div", { className: "detail" }, top, description, el("div", { className: "actions" }, actionBtn))
-  );
+  if (readOnly) {
+    const line = entryLine(book);
+    if (line) content.append(el("p", { className: "meta" }, `${friend ? friend.display_name : ""}: ${line}`));
+  } else {
+    const statusField = selectField(
+      "Status",
+      "f-status",
+      Object.entries(STATUS),
+      entry ? entry.status : "want"
+    );
+    const progressField = el("label", { className: "field" }, "Aktuelle Seite");
+    const progress = el("input", {
+      id: "f-progress",
+      type: "number",
+      min: "0",
+      value: entry && entry.progress != null ? entry.progress : "",
+    });
+    if (book.pages) progress.max = String(book.pages);
+    progressField.append(progress);
+    const ratingField = selectField(
+      "Bewertung",
+      "f-rating",
+      [["", "–"], ...[1, 2, 3, 4, 5].map((n) => [n, "★".repeat(n)])],
+      entry ? entry.rating : ""
+    );
+
+    const saveBtn = el("button", { className: "btn", type: "button" }, entry ? "Speichern" : "Zur Bibliothek");
+    const msg = el("p", { role: "status", className: "meta" });
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+      try {
+        await saveEntry(book, {
+          status: $("f-status").value,
+          progress: $("f-progress").value === "" ? null : Number($("f-progress").value),
+          rating: $("f-rating").value === "" ? null : Number($("f-rating").value),
+        });
+        await reloadMyLibrary();
+        $("detail").close();
+        renderLibrary();
+      } catch (err) {
+        msg.textContent = "Speichern hat nicht geklappt: " + err.message;
+        saveBtn.disabled = false;
+      }
+    };
+
+    const actions = el("div", { className: "actions" }, saveBtn);
+    if (entry) {
+      const removeBtn = el("button", { className: "btn secondary", type: "button" }, "Entfernen");
+      removeBtn.onclick = async () => {
+        try {
+          await removeEntry(book.id);
+          await reloadMyLibrary();
+          $("detail").close();
+          renderLibrary();
+        } catch (err) {
+          msg.textContent = "Entfernen hat nicht geklappt: " + err.message;
+        }
+      };
+      actions.append(removeBtn);
+    }
+    content.append(statusField, progressField, ratingField, actions, msg);
+  }
+
+  $("detail-content").replaceChildren(content);
   $("detail").showModal();
 }
 
-// ---------- Bibliothek (vorerst lokal) ----------
+// ---------- Bibliothek ----------
 
-function loadLibrary() {
-  try {
-    return JSON.parse(localStorage.getItem(LIBRARY_KEY)) || [];
-  } catch {
-    return [];
+async function renderLibrary() {
+  $("lib-mine").className = libView === "mine" ? "btn" : "btn secondary";
+  $("lib-friend").className = libView === "friend" ? "btn" : "btn secondary";
+  $("lib-friend").hidden = !friend;
+  if (friend) $("lib-friend").textContent = friend.display_name;
+
+  if (libView === "mine") {
+    $("library-status").textContent = myLibrary.length
+      ? `${myLibrary.length} Buch/Bücher in deiner Bibliothek`
+      : "Noch keine Bücher. Suche eins und füge es hinzu.";
+    renderGrid($("library"), myLibrary, false);
+  } else if (friend) {
+    $("library-status").textContent = "Lade …";
+    try {
+      const books = await fetchLibrary(friend.id);
+      $("library-status").textContent = books.length
+        ? `${books.length} Buch/Bücher bei ${friend.display_name}`
+        : `${friend.display_name} hat noch keine Bücher.`;
+      renderGrid($("library"), books, true);
+    } catch (err) {
+      $("library-status").textContent = "Konnte die Bibliothek nicht laden.";
+    }
   }
 }
 
-function saveLibrary(books) {
-  try {
-    localStorage.setItem(LIBRARY_KEY, JSON.stringify(books));
-  } catch {
-    // Speicher nicht verfügbar – dann bleibt die Bibliothek leer.
+// ---------- Verbindung ----------
+
+function renderFriendPanel() {
+  $("my-code").textContent = me.invite_code;
+  $("friend-info").textContent = friend
+    ? `Verbunden mit ${friend.display_name}.`
+    : "Noch nicht verbunden. Schick deiner Freundin deinen Code oder gib hier ihren ein.";
+  $("connect-form").hidden = !!friend;
+}
+
+$("connect-form").onsubmit = async (event) => {
+  event.preventDefault();
+  $("friend-status").textContent = "Verbinde …";
+  const { error } = await sb.rpc("connect_with_code", { code: $("friend-code").value });
+  if (error) {
+    $("friend-status").textContent = error.message;
+    return;
   }
+  await loadFriend();
+  $("friend-status").textContent = "";
+  renderFriendPanel();
+};
+
+// ---------- Login ----------
+
+function authMessage(text) {
+  $("auth-status").textContent = text;
 }
 
-function toggleLibrary(book) {
-  const books = loadLibrary();
-  const exists = books.some((b) => b.id === book.id);
-  saveLibrary(exists ? books.filter((b) => b.id !== book.id) : [...books, book]);
-}
+$("auth-form").onsubmit = async (event) => {
+  event.preventDefault();
+  authMessage("Anmeldung läuft …");
+  const { error } = await sb.auth.signInWithPassword({
+    email: $("auth-email").value.trim(),
+    password: $("auth-password").value,
+  });
+  if (error) authMessage("Anmeldung fehlgeschlagen: " + error.message);
+};
 
-function renderLibrary() {
-  const books = loadLibrary();
-  $("library-status").textContent = books.length
-    ? `${books.length} Buch/Bücher in deiner Bibliothek`
-    : "Noch keine Bücher. Suche eins und füge es hinzu.";
-  renderGrid($("library"), books);
+$("btn-signup").onclick = async () => {
+  const email = $("auth-email").value.trim();
+  const password = $("auth-password").value;
+  if (!email || password.length < 8) {
+    authMessage("Bitte E-Mail und ein Passwort mit mindestens 8 Zeichen eingeben.");
+    return;
+  }
+  authMessage("Registrierung läuft …");
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: { data: { display_name: $("auth-name").value.trim() } },
+  });
+  if (error) {
+    authMessage("Registrierung fehlgeschlagen: " + error.message);
+  } else if (!data.session) {
+    authMessage("Fast geschafft: Bitte bestätige deine E-Mail-Adresse über den Link in der Mail.");
+  }
+};
+
+$("logout").onclick = () => sb.auth.signOut();
+
+async function onSession(session) {
+  const loggedIn = !!session;
+  $("view-auth").hidden = loggedIn;
+  $("nav").hidden = !loggedIn;
+  $("logout").hidden = !loggedIn;
+
+  if (!loggedIn) {
+    me = null;
+    friend = null;
+    myLibrary = [];
+    for (const id of ["view-search", "view-library", "view-friend"]) $(id).hidden = true;
+    return;
+  }
+
+  try {
+    const { data, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+    if (error) throw error;
+    me = data;
+    await loadFriend();
+    await reloadMyLibrary();
+    renderFriendPanel();
+    showTab("search");
+  } catch (err) {
+    $("view-auth").hidden = false;
+    authMessage("Konnte deine Daten nicht laden: " + err.message);
+  }
 }
 
 // ---------- Bedienung ----------
 
 function showTab(name) {
-  $("view-search").hidden = name !== "search";
-  $("view-library").hidden = name !== "library";
-  $("tab-search").classList.toggle("active", name === "search");
-  $("tab-library").classList.toggle("active", name === "library");
+  for (const n of ["search", "library", "friend"]) {
+    $("view-" + n).hidden = n !== name;
+    $("tab-" + n).classList.toggle("active", n === name);
+  }
   if (name === "library") renderLibrary();
 }
 
 $("tab-search").onclick = () => showTab("search");
 $("tab-library").onclick = () => showTab("library");
+$("tab-friend").onclick = () => showTab("friend");
+$("lib-mine").onclick = () => {
+  libView = "mine";
+  renderLibrary();
+};
+$("lib-friend").onclick = () => {
+  libView = "friend";
+  renderLibrary();
+};
 $("close").onclick = () => $("detail").close();
 
 $("search-form").onsubmit = async (event) => {
   event.preventDefault();
-  const input = $("query").value;
   $("status").textContent = "Suche läuft …";
   $("results").replaceChildren();
   try {
-    const books = await searchBooks(input);
+    const books = await searchBooks($("query").value);
     $("status").textContent = books.length ? `${books.length} Treffer` : "Keine Treffer.";
     renderGrid($("results"), books);
   } catch (err) {
     $("status").textContent = err.message;
   }
 };
+
+// Auf Login/Logout reagieren (nicht direkt in der Callback-Funktion auf Supabase warten)
+sb.auth.onAuthStateChange((_event, session) => {
+  setTimeout(() => onSession(session), 0);
+});

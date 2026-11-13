@@ -9,14 +9,32 @@
 <body>
   <header>
     <h1>CoRead</h1>
-    <nav>
+    <nav id="nav" hidden>
       <button id="tab-search" class="tab active">Suche</button>
       <button id="tab-library" class="tab">Bibliothek</button>
+      <button id="tab-friend" class="tab">Freundin</button>
     </nav>
+    <button id="logout" class="tab" hidden>Abmelden</button>
   </header>
 
   <main>
-    <section id="view-search">
+    <!-- Login / Registrierung -->
+    <section id="view-auth">
+      <form id="auth-form" class="stack">
+        <h2>Anmelden</h2>
+        <input id="auth-name" type="text" placeholder="Dein Name (nur bei Registrierung)" autocomplete="nickname">
+        <input id="auth-email" type="email" placeholder="E-Mail" autocomplete="email" required>
+        <input id="auth-password" type="password" placeholder="Passwort (mind. 8 Zeichen)" minlength="8" autocomplete="current-password" required>
+        <div class="actions">
+          <button type="submit" id="btn-login">Anmelden</button>
+          <button type="button" id="btn-signup" class="btn secondary">Registrieren</button>
+        </div>
+        <p id="auth-status" role="status"></p>
+      </form>
+    </section>
+
+    <!-- Suche -->
+    <section id="view-search" hidden>
       <form id="search-form">
         <input id="query" type="search" placeholder="Titel, Autor:in oder ISBN" autocomplete="off" required>
         <button type="submit">Suchen</button>
@@ -25,9 +43,28 @@
       <div id="results" class="grid"></div>
     </section>
 
+    <!-- Bibliothek -->
     <section id="view-library" hidden>
+      <div class="actions switch">
+        <button id="lib-mine" class="btn" type="button">Meine</button>
+        <button id="lib-friend" class="btn secondary" type="button" hidden></button>
+      </div>
       <p id="library-status" role="status"></p>
       <div id="library" class="grid"></div>
+    </section>
+
+    <!-- Verbindung mit der Freundin -->
+    <section id="view-friend" hidden>
+      <div class="stack">
+        <h2>Deine Verbindung</h2>
+        <p id="friend-info"></p>
+        <p>Dein Einladungscode: <strong id="my-code" class="code"></strong></p>
+        <form id="connect-form" class="stack">
+          <input id="friend-code" type="text" placeholder="Code deiner Freundin" autocomplete="off" required>
+          <button type="submit">Verbinden</button>
+        </form>
+        <p id="friend-status" role="status"></p>
+      </div>
     </section>
   </main>
 
@@ -36,6 +73,8 @@
     <div id="detail-content"></div>
   </dialog>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

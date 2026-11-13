@@ -21,8 +21,9 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 ## Technik
 
 - Web-App (läuft auch auf dem Handy, später als PWA installierbar)
-- Aktuell: reines HTML/CSS/JavaScript, keine Build-Tools nötig
-- Geplant: Supabase für Login und Datenbank (zwei Personen teilen ihre Daten)
+- Reines HTML/CSS/JavaScript, keine Build-Tools nötig
+- Supabase für Login und Datenbank (Row Level Security: nur ihr zwei seht eure Daten)
+- Datenbank-Schema: `supabase/schema.sql` (einmalig im Supabase SQL Editor ausführen)
 
 ## Ausprobieren
 
@@ -31,10 +32,10 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 ## Roadmap
 
 - [x] 1. Buchsuche mit Steckbrief und Cover (Google Books + Open Library)
-- [ ] 2. Login für zwei Personen, Verbindung "Freundin"
-- [ ] 3. Aktuelles Buch mit Fortschritt
-- [ ] 4. Bibliothek (inkl. Einsicht in die der anderen)
-- [ ] 5. Bewertungen und Kommentare
+- [x] 2. Login für zwei Personen, Verbindung "Freundin" per Einladungscode
+- [x] 3. Lesestatus und Fortschritt (Seite)
+- [x] 4. Bibliothek (inkl. Einsicht in die der anderen)
+- [ ] 5. Bewertungen (Sterne sind drin) und Kommentare (Tabelle fertig, Oberfläche fehlt)
 - [ ] 6. Top-Listen
 - [ ] 7. Optional: ISBN-Barcode-Scan mit der Handykamera
 - [ ] 8. Wöchentlicher automatischer Aufruf (GitHub Action), damit das kostenlose Supabase-Projekt nicht pausiert
