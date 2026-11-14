@@ -2748,6 +2748,15 @@ function showTab(name) {
 }
 
 $("tab-home").onclick = () => showTab("home");
+$("logo-home").onclick = () => {
+  if (me) showTab("home");
+};
+$("logo-home").onkeydown = (e) => {
+  if ((e.key === "Enter" || e.key === " ") && me) {
+    e.preventDefault();
+    showTab("home");
+  }
+};
 $("tab-bookclub").onclick = () => showTab("bookclub");
 $("tab-profile").onclick = () => showTab("profile");
 

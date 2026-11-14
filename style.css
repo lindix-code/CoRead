@@ -874,3 +874,5 @@ header { padding-right: 8px; }
 .btile-label { font-size: 0.8rem; color: #4f5459; }
 .btile-number { font-size: 1.9rem; font-weight: 700; color: var(--primary); line-height: 1.2; }
 .btile-sub { font-size: 0.75rem; color: #6b7074; }
+
+#logo-home { cursor: pointer; -webkit-tap-highlight-color: transparent; }
