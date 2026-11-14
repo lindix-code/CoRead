@@ -2027,5 +2027,21 @@ setTimeout(clearSearchFields, 0);
 
 // Auf Login/Logout reagieren (nicht direkt in der Callback-Funktion auf Supabase warten)
 sb.auth.onAuthStateChange((_event, session) => {
-  setTimeout(() => onSession(session), 0);
+  setTimeout(async () => {
+    await onSession(session);
+    hideSplash();
+  }, 0);
 });
+
+// Startbild: bleibt mindestens ~1,3 Sekunden sichtbar und verschwindet, sobald Login-Status und Daten geladen sind
+function hideSplash() {
+  const splash = $("splash");
+  if (!splash || splash.dataset.leaving) return;
+  splash.dataset.leaving = "1";
+  const wait = Math.max(0, 1300 - performance.now());
+  setTimeout(() => {
+    splash.classList.add("leave");
+    setTimeout(() => splash.remove(), 500);
+  }, wait);
+}
+setTimeout(hideSplash, 8000); // Sicherheitsnetz, falls etwas hängt

@@ -641,3 +641,13 @@ header { flex-wrap: wrap; gap: 4px; }
 }
 .classic-title { font-size: 0.78rem; font-weight: 600; line-height: 1.25; }
 .classic-readers { font-size: 0.7rem; color: #7a6e65; min-height: 1em; }
+
+/* Startbild beim Laden */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #345457 url("assets/splash.jpg") center / contain no-repeat;
+  transition: opacity 0.45s ease;
+}
+#splash.leave { opacity: 0; pointer-events: none; }
