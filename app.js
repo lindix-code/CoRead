@@ -366,6 +366,29 @@ async function optimizeMyImages(report) {
   return { count, saved };
 }
 
+// Vorhandene große Bilder einmalig im Hintergrund verkleinern (neue Bilder werden schon beim Hochladen verkleinert)
+function scheduleImageOptimization() {
+  const key = "coread-images-optimized-" + me.id;
+  try {
+    if (localStorage.getItem(key)) return;
+  } catch (e) {}
+  setTimeout(async () => {
+    try {
+      const { count } = await optimizeMyImages(() => {});
+      try {
+        localStorage.setItem(key, "1");
+      } catch (e) {}
+      if (count) {
+        await reloadMyLibrary();
+        renderLibrary();
+        renderHome();
+      }
+    } catch (err) {
+      console.warn("Bilder-Optimierung übersprungen:", err);
+    }
+  }, 4000);
+}
+
 // ---------- Anzeige-Helfer ----------
 
 function el(tag, props = {}, ...children) {
@@ -2002,6 +2025,7 @@ async function onSession(session) {
     renderFriendPanel();
     refreshBell();
     showTab("home");
+    scheduleImageOptimization();
   } catch (err) {
     $("view-auth").hidden = false;
     authMessage("Konnte deine Daten nicht laden: " + err.message);
@@ -2069,21 +2093,6 @@ function showTab(name) {
 $("tab-home").onclick = () => showTab("home");
 $("tab-bookclub").onclick = () => showTab("bookclub");
 $("tab-profile").onclick = () => showTab("profile");
-$("optimize-images").onclick = async () => {
-  const btn = $("optimize-images");
-  const status = $("optimize-status");
-  btn.disabled = true;
-  try {
-    const { count, saved } = await optimizeMyImages((text) => (status.textContent = text));
-    await reloadMyLibrary();
-    status.textContent = count
-      ? `${count} ${count === 1 ? "Bild" : "Bilder"} verkleinert, etwa ${(saved / 1048576).toFixed(1).replace(".", ",")} MB gespart.`
-      : "Alle deine Bilder sind schon klein genug.";
-  } catch (err) {
-    status.textContent = "Das hat nicht geklappt: " + err.message;
-  }
-  btn.disabled = false;
-};
 $("tab-library").onclick = () => showTab("library");
 $("tab-friend").onclick = () => showTab("friend");
 $("lib-mine").onclick = () => {
