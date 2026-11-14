@@ -678,3 +678,6 @@ main { padding-bottom: 96px; }
 header h1 { gap: 10px; }
 .logo-book-img { height: 36px; width: auto; display: block; }
 .logo-word-img { height: 22px; width: auto; display: block; }
+
+/* Karten sind Buttons: Inhalt oben ausrichten, damit alle Cover in einer Reihe auf gleicher Höhe beginnen */
+.card { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; }
