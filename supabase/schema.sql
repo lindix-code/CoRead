@@ -412,3 +412,7 @@ create policy "buddy_comments_insert" on public.buddy_comments for insert to aut
   with check (user_id = auth.uid());
 create policy "buddy_comments_delete" on public.buddy_comments for delete to authenticated
   using (user_id = auth.uid());
+
+-- ---------- Buddy-Read-Rangliste ----------
+alter table public.buddy_reads
+  add column if not exists rank int check (rank is null or rank between 1 and 99);
