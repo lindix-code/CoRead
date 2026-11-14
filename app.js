@@ -603,6 +603,7 @@ function showDetail(book, readOnly = false, preset = null) {
       progressField.hidden = st !== "reading";
       chaptersField.hidden = st !== "reading";
       pagesField.hidden = st !== "reading";
+      ratingField.hidden = st === "want"; // "Möchte ich lesen": noch nichts zu bewerten
     };
     const progressField = el("label", { className: "field" }, "Aktuelle Seite");
     const progress = el("input", {
