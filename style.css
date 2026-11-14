@@ -896,3 +896,15 @@ input::placeholder, textarea::placeholder { color: var(--muted); }
 dialog { background: var(--card); color: var(--text); }
 body.auth-mode input { background: #fff; color: #2d2e34; }
 :root[data-theme="dark"] .classic-title { color: var(--text); }
+
+/* Dunkel: Ziffern in Mint, Zwischenüberschriften in Gold */
+:root[data-theme="dark"] .tile-number,
+:root[data-theme="dark"] .btile-number,
+:root[data-theme="dark"] .bcard-stats .friend { color: var(--mint); }
+:root[data-theme="dark"] .bprop-head,
+:root[data-theme="dark"] .shelf-head h3,
+:root[data-theme="dark"] .overview h3,
+:root[data-theme="dark"] .classics h3,
+:root[data-theme="dark"] .buddy h3,
+:root[data-theme="dark"] main h2,
+:root[data-theme="dark"] main h3 { color: var(--accent); }
