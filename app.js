@@ -2121,14 +2121,22 @@ async function renderProfile() {
   appInfo = {};
   if (!error) for (const r of rows || []) appInfo[r.key] = r.value;
 
-  const number = (appInfo.support_whatsapp || "").replace(/\D/g, "");
+  let number = (appInfo.support_whatsapp || "").replace(/\D/g, "");
+  if (number.startsWith("00")) number = number.slice(2);
+  else if (number.startsWith("0")) number = "49" + number.slice(1);
   const link = $("support-link");
+  const webLink = $("support-link-web");
   if (number) {
-    link.href = `https://wa.me/${number}?text=${encodeURIComponent("Hallo Lindi, bei CoRead gibt es etwas: ")}`;
+    const text = encodeURIComponent("Hallo Lindi, bei CoRead gibt es etwas: ");
+    link.href = `whatsapp://send?phone=${number}&text=${text}`;
+    link.removeAttribute("target");
+    webLink.href = `https://wa.me/${number}?text=${text}`;
     link.hidden = false;
+    webLink.hidden = false;
     $("support-status").textContent = "";
   } else {
     link.hidden = true;
+    webLink.hidden = true;
     $("support-status").textContent = "Der Kontakt ist noch nicht eingerichtet.";
   }
   $("impressum-address").textContent = appInfo.impressum_address || "Die Angaben sind noch nicht eingetragen.";

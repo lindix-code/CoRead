@@ -702,3 +702,6 @@ header h1 { gap: 10px; }
 .swatch span { width: 22px; height: 22px; border-radius: 50%; display: inline-block; }
 .swatch.on { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
 .swatch:disabled { opacity: 0.55; }
+
+.sum-left { display: flex; align-items: center; gap: 12px; }
+.sum-icon { width: 22px; height: 22px; color: #4f5459; flex: none; }
