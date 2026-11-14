@@ -352,3 +352,7 @@ create policy "profile_books_update" on public.profile_books for update to authe
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "profile_books_delete" on public.profile_books for delete to authenticated
   using (user_id = auth.uid());
+
+-- ---------- Glöckchen-Neuigkeiten ----------
+alter table public.profiles
+  add column if not exists events_seen_at timestamptz not null default now();
