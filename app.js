@@ -1001,6 +1001,128 @@ function heroCard(book) {
   return el("div", { className: compact ? "hero compact" : "hero" }, cover, body);
 }
 
+// ---------- Meilenstein: Zeitraum + Anzahl Bücher ----------
+
+let goals = [];
+
+async function loadGoals() {
+  const { data, error } = await sb
+    .from("reading_goals")
+    .select("id, period_start, period_end, target")
+    .eq("user_id", me.id)
+    .order("created_at", { ascending: false });
+  goals = error ? [] : data; // ohne Migration 012 einfach kein Meilenstein
+}
+
+// Meilenstein, der heute gilt (neuester zuerst)
+function activeGoal() {
+  const today = todayLocal();
+  return goals.find((g) => g.period_start <= today && today <= g.period_end) || null;
+}
+
+function booksReadBetween(start, end) {
+  return myLibrary.filter(
+    (b) => b.entry.status === "read" && b.entry.finishedAt && b.entry.finishedAt >= start && b.entry.finishedAt <= end
+  );
+}
+
+function goalLabel(goal) {
+  const y = goal.period_start.slice(0, 4);
+  if (goal.period_start === `${y}-01-01` && goal.period_end === `${y}-12-31`) return `Gelesen ${y}`;
+  return `Gelesen ${formatDate(goal.period_start)} – ${formatDate(goal.period_end)}`;
+}
+
+function renderYearTile() {
+  const goal = activeGoal();
+  if (goal) {
+    $("year-label").textContent = goalLabel(goal);
+    $("year-count").textContent = `${booksReadBetween(goal.period_start, goal.period_end).length}/${goal.target}`;
+    return;
+  }
+  const year = String(new Date().getFullYear());
+  $("year-label").textContent = `Gelesen ${year}`;
+  $("year-count").textContent = booksReadIn(year).length;
+}
+
+function openGoalDialog() {
+  const goal = activeGoal();
+  const year = new Date().getFullYear();
+  $("goal-title").textContent = goal ? "Meilenstein bearbeiten" : "Meilenstein hinzufügen";
+  const from = makeDateField(goal ? goal.period_start : `${year}-01-01`);
+  const to = makeDateField(goal ? goal.period_end : `${year}-12-31`);
+  const target = el("input", { type: "number", min: "1", max: "1000", step: "1", placeholder: "z. B. 15", inputMode: "numeric" });
+  if (goal) target.value = goal.target;
+  const msg = el("p", { role: "status", className: "meta" });
+  const progress = el("p", { className: "meta" });
+  const updateProgress = () => {
+    const s = from.value();
+    const e = to.value();
+    if (s && e && e >= s && target.value) {
+      progress.textContent = `Stand: ${booksReadBetween(s, e).length}/${Math.round(Number(target.value))} Büchern`;
+    } else {
+      progress.textContent = "";
+    }
+  };
+  target.oninput = updateProgress;
+  updateProgress();
+
+  const save = el("button", { className: "btn", type: "button" }, "Speichern");
+  save.onclick = async () => {
+    if (from.bad() || to.bad() || !from.value() || !to.value()) {
+      msg.textContent = "Bitte gib Beginn und Ende als TT.MM.JJJJ ein.";
+      return;
+    }
+    if (to.value() < from.value()) {
+      msg.textContent = "Das Ende liegt vor dem Beginn.";
+      return;
+    }
+    const n = Math.round(Number(target.value));
+    if (!n || n < 1 || n > 1000) {
+      msg.textContent = "Bitte gib eine Anzahl Bücher zwischen 1 und 1000 ein.";
+      return;
+    }
+    save.disabled = true;
+    const fields = { period_start: from.value(), period_end: to.value(), target: n };
+    const { error } = goal
+      ? await sb.from("reading_goals").update(fields).eq("id", goal.id)
+      : await sb.from("reading_goals").insert(fields);
+    if (error) {
+      msg.textContent = "Speichern hat nicht geklappt: " + error.message;
+      save.disabled = false;
+      return;
+    }
+    await loadGoals();
+    $("goal-dialog").close();
+    renderHome();
+  };
+  const actions = el("div", { className: "actions" }, save);
+  if (goal) {
+    const del = el("button", { className: "btn secondary", type: "button" }, "Löschen");
+    del.onclick = async () => {
+      if (!confirm("Diesen Meilenstein wirklich löschen?")) return;
+      const { error } = await sb.from("reading_goals").delete().eq("id", goal.id);
+      if (error) {
+        msg.textContent = "Löschen hat nicht geklappt: " + error.message;
+        return;
+      }
+      await loadGoals();
+      $("goal-dialog").close();
+      renderHome();
+    };
+    actions.append(del);
+  }
+  $("goal-content").replaceChildren(
+    el("div", { className: "field" }, "Zeitraum von", from.root),
+    el("div", { className: "field" }, "Zeitraum bis", to.root),
+    el("label", { className: "field" }, "Anzahl der Bücher", target),
+    progress,
+    actions,
+    msg
+  );
+  $("goal-dialog").showModal();
+}
+$("goal-close").onclick = () => $("goal-dialog").close();
+
 function renderHome() {
   const reading = myLibrary.filter((b) => b.entry.status === "reading");
   const hero = $("home-hero");
@@ -1049,9 +1171,7 @@ function renderHome() {
   const owned = myLibrary.filter((b) => b.entry.owned).length;
   $("shelf-count").textContent = owned;
 
-  const year = String(new Date().getFullYear());
-  $("year-label").textContent = `Gelesen ${year}`;
-  $("year-count").textContent = booksReadIn(year).length;
+  renderYearTile();
   renderYearOverview();
 
   $("stack-count").textContent = stackBooks().length;
@@ -1062,7 +1182,6 @@ function stackBooks() {
   return myLibrary.filter(isUnread);
 }
 
-let yearOpen = true; // Übersicht standardmäßig offen
 
 // Bücher, die im angegebenen Jahr beendet wurden (neueste zuerst)
 function booksReadIn(year) {
@@ -1107,9 +1226,7 @@ const yearLabel = (year) => (year === "none" ? "Ohne Datum" : year);
 
 function renderYearOverview() {
   const box = $("year-overview");
-  $("tile-year").setAttribute("aria-expanded", String(yearOpen));
-  box.hidden = !yearOpen;
-  if (!yearOpen) return;
+  box.hidden = false; // Jahreslisten bleiben immer sichtbar
 
   const filter = el(
     "div",
@@ -1162,10 +1279,7 @@ $("tile-shelf").onclick = () => {
   libList = "shelf";
   showTab("library");
 };
-$("tile-year").onclick = () => {
-  yearOpen = !yearOpen;
-  renderYearOverview();
-};
+$("tile-year").onclick = () => openGoalDialog();
 $("tile-stack").onclick = () => {
   libView = "mine";
   libList = "unread";
@@ -1707,6 +1821,7 @@ async function onSession(session) {
     $("tab-friend").textContent = /zaza/i.test(me.display_name || "") ? "Lindi" : "Zaza";
     $("tab-profile").hidden = false;
     await reloadMyLibrary();
+    await loadGoals();
     renderFriendPanel();
     refreshBell();
     showTab("home");

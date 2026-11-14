@@ -59,3 +59,4 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 
 - [ ] 18. Inspiration anbieten, wenn gerade kein Buch gelesen wird (z. B. auf der Startseite statt "Du liest gerade kein Buch")
 - [ ] 19. Neuerscheinungen, Buchtipps oder die Spiegel-Bestsellerliste einfließen lassen (passt zu Punkt 18, Inspiration)
+- [x] Meilenstein (Zeitraum + Anzahl Bücher, Anzeige "12/15", bearbeitbar) auf der Startseite, Migration 012; gemeinsame Meilensteine folgen im BookClub (12.1)
