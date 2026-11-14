@@ -2862,19 +2862,48 @@ setTimeout(clearSearchFields, 0);
 sb.auth.onAuthStateChange((_event, session) => {
   setTimeout(async () => {
     await onSession(session);
-    hideSplash();
+    if (session) hideSplash();
+    else showAuth();
   }, 0);
 });
 
-// Startbild: bleibt mindestens ~1,3 Sekunden sichtbar und verschwindet, sobald Login-Status und Daten geladen sind
+// Startbild: bleibt mindestens ~1,3 Sekunden sichtbar.
+// Eingeloggt: es blendet aus. Ausgeloggt: das Buch wandert nach oben, darunter erscheint der Login.
 function hideSplash() {
   const splash = $("splash");
   if (!splash || splash.dataset.leaving) return;
   splash.dataset.leaving = "1";
+  splash.dataset.shown = "1";
+  document.body.classList.remove("auth-mode", "auth-up");
   const wait = Math.max(0, 1300 - performance.now());
   setTimeout(() => {
     splash.classList.add("leave");
-    setTimeout(() => splash.remove(), 500);
+    setTimeout(() => {
+      splash.hidden = true;
+      delete splash.dataset.leaving;
+    }, 500);
   }, wait);
 }
-setTimeout(hideSplash, 8000); // Sicherheitsnetz, falls etwas hängt
+
+function showAuth() {
+  const splash = $("splash");
+  const first = !splash.dataset.shown;
+  splash.dataset.shown = "1";
+  delete splash.dataset.leaving;
+  document.body.classList.add("auth-mode");
+  splash.hidden = false;
+  splash.classList.remove("leave");
+  if (splash.classList.contains("up")) {
+    document.body.classList.add("auth-up");
+    return;
+  }
+  const wait = first ? Math.max(0, 1300 - performance.now()) : 0;
+  if (!first) splash.classList.add("instant");
+  setTimeout(() => {
+    splash.classList.add("up");
+    document.body.classList.add("auth-up");
+  }, wait);
+}
+setTimeout(() => {
+  if (!$("splash").dataset.shown) showAuth();
+}, 8000); // Sicherheitsnetz, falls etwas hängt

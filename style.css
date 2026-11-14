@@ -650,10 +650,32 @@ header { flex-wrap: wrap; gap: 4px; }
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: var(--primary) url("assets/splash.jpg") center / contain no-repeat;
+  background: var(--primary);
   transition: opacity 0.45s ease;
 }
+#splash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("assets/splash.jpg") center / contain no-repeat;
+  transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#splash.up::before { transform: translateY(-27%) scale(0.55); }
+#splash.instant::before { transition: none; }
 #splash.leave { opacity: 0; pointer-events: none; }
+#splash[hidden] { display: none; }
+
+/* Ausgeloggt: Login auf Petrol unter dem kleinen Logo, ohne Kopfzeile */
+body.auth-mode { background: var(--primary); }
+body.auth-mode header { display: none; }
+body.auth-mode main { position: relative; z-index: 10000; }
+body.auth-mode #view-auth { padding-top: 34vh; opacity: 0; transition: opacity 0.6s ease 0.5s; }
+body.auth-up #view-auth { opacity: 1; }
+body.auth-mode #view-auth h2 { color: #f6f0e8; text-align: center; margin: 0 0 4px; }
+body.auth-mode #auth-status { color: var(--mint); text-align: center; }
+body.auth-mode #btn-login { background: var(--accent); color: #2d2e34; }
+body.auth-mode #btn-signup { background: transparent; color: var(--mint); border: 1px solid var(--mint); }
+body.auth-mode #view-auth .actions { justify-content: center; }
 
 /* Kompakte Navigation: schmale Kopfzeile, Symbolleiste unten */
 header { flex-wrap: nowrap; padding: 8px 14px; min-height: 52px; box-sizing: border-box; align-items: center; }
