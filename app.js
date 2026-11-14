@@ -668,7 +668,7 @@ function showDetail(book, readOnly = false, preset = null) {
           cover: url,
           originalCover: book.originalCover !== undefined ? book.originalCover : book.cover,
         };
-        coverMsg.textContent = "Cover hochgeladen. Mit „Speichern“ übernehmen.";
+        coverMsg.textContent = "";
         refreshCover();
       } catch (err) {
         coverMsg.textContent = "Upload hat nicht geklappt: " + err.message;

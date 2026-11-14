@@ -724,3 +724,7 @@ header h1 { gap: 10px; }
 .shelf-empty { padding: 8px 0; }
 #pb-dialog textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; border: 1px solid #cdd2d0; border-radius: 8px; }
 #pb-dialog .pre { white-space: pre-wrap; }
+
+/* Speichern-Symbol überdeckt keinen Text: Platz rechts neben Titel und Infos lassen */
+#detail .detail-top > div:last-child { padding-right: 44px; }
+#detail:has(.quick-save:not([hidden])) .detail-top > div:last-child { padding-right: 92px; }
