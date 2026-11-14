@@ -922,8 +922,18 @@ $("add-form").onsubmit = async (event) => {
   $("add-status").textContent = "Suche läuft …";
   $("add-results").replaceChildren();
   try {
-    const books = await searchBooks($("add-query").value, $("add-lang").value);
-    $("add-status").textContent = books.length ? `${books.length} Treffer` : "Keine Treffer.";
+    let books = await searchBooks($("add-query").value, $("add-lang").value);
+    let ownCount = 0;
+    if (addKind) {
+      // Profil-Listen: zuerst die eigene Bibliothek (inkl. geändertem Cover), dann weitere Treffer
+      const own = libraryMatches($("add-query").value);
+      ownCount = own.length;
+      const ownIds = new Set(own.map((b) => b.id));
+      books = [...own, ...books.filter((b) => !ownIds.has(b.id))];
+    }
+    $("add-status").textContent = books.length
+      ? ownCount ? `${ownCount} aus deiner Bibliothek, dazu ${books.length - ownCount} weitere Treffer` : `${books.length} Treffer`
+      : "Keine Treffer.";
     $("add-results").replaceChildren(
       ...books.map((book) => {
         const card = bookCard(book, false);
@@ -2134,7 +2144,16 @@ async function fetchProfileBooks(userId) {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data.map((r) => ({ ...dbToBook(r.books), pbId: r.id, kind: r.kind, note: r.note || "" }));
+  // Hat die Person in ihrer Bibliothek ein eigenes Cover gesetzt, gilt dieses auch hier
+  let covers = {};
+  try {
+    const { data: lib } = await sb.from("library_entries").select("book_id, custom_cover").eq("user_id", userId).not("custom_cover", "is", null);
+    for (const l of lib || []) covers[l.book_id] = l.custom_cover;
+  } catch (e) {}
+  return data.map((r) => {
+    const book = dbToBook(r.books);
+    return { ...book, cover: covers[book.id] || book.cover, pbId: r.id, kind: r.kind, note: r.note || "" };
+  });
 }
 
 function slideCard(item, readOnly) {
@@ -2229,6 +2248,28 @@ function openProfileBook(item, readOnly) {
 }
 $("pb-close").onclick = () => $("pb-dialog").close();
 
+
+function libraryMatches(query) {
+  const q = (query || "").trim().toLowerCase();
+  const list = myLibrary.filter((b) => !q || `${b.title} ${b.authors.join(" ")} ${b.isbn || ""}`.toLowerCase().includes(q));
+  return list.map((b) => ({ ...b, entry: undefined })); // ohne Statuszeile, aber mit eigenem Cover
+}
+
+function showLibraryMatches() {
+  const own = libraryMatches($("add-query").value).slice(0, 40);
+  $("add-status").textContent = own.length ? `Aus deiner Bibliothek (${own.length}) – oder oben nach weiteren Büchern suchen` : "";
+  $("add-results").replaceChildren(
+    ...own.map((book) => {
+      const card = bookCard(book, false);
+      card.onclick = () => addProfileBook(addKind, book);
+      return card;
+    })
+  );
+}
+$("add-query").addEventListener("input", () => {
+  if (addKind) showLibraryMatches();
+});
+
 async function addProfileBook(kind, book) {
   $("add-status").textContent = "Speichere …";
   try {
@@ -2250,8 +2291,8 @@ for (const btn of document.querySelectorAll(".shelf-add")) {
     $("add-title").textContent = SHELVES[addKind].add;
     $("add-query").value = "";
     $("add-status").textContent = "";
-    $("add-results").replaceChildren();
     $("add-dialog").showModal();
+    showLibraryMatches();
     $("add-query").focus();
   };
 }
