@@ -56,9 +56,9 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
   - [x] 12.4 Gemeinsame Klassiker: Kachel + Block mit Buchdeckeln, die bunt werden, sobald eine von euch das Buch als gelesen markiert (Migration 013)
 - [ ] 13. Zitate hinterlegen oder markieren
 - [ ] 14. Seitenanzahl zusammenzählen (einzeln und gemeinsam)
-- [ ] 15. Liste mit ausgeliehenen Büchern als Erinnerung (evtl. im Profil)
-- [ ] 16. Liste mit absoluten Lieblingsbüchern aller Zeiten
-- [ ] 17. Klare Buchempfehlung für die andere Person
+- [x] 15. Liste mit ausgeliehenen Büchern als Erinnerung (im Profil, nur für dich sichtbar; Migration 015)
+- [x] 16. Liste mit absoluten Lieblingsbüchern aller Zeiten
+- [x] 17. Klare Buchempfehlung für die andere Person
 
 - [ ] 18. Inspiration anbieten, wenn gerade kein Buch gelesen wird (z. B. auf der Startseite statt "Du liest gerade kein Buch")
 - [ ] 19. Neuerscheinungen, Buchtipps oder die Spiegel-Bestsellerliste einfließen lassen (passt zu Punkt 18, Inspiration)
