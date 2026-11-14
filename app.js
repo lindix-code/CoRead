@@ -2142,6 +2142,21 @@ $("unlock-open").onclick = () => {
 };
 $("unlock-close").onclick = () => $("unlock-dialog").close();
 
+function libPct(lib) {
+  if (!lib || !lib.entry) return 0;
+  if (lib.entry.status === "read") return 100;
+  if (lib.entry.status !== "reading" && lib.entry.progress == null) return 0;
+  return progressInfo(lib).pct || 0;
+}
+
+function libLabel(lib) {
+  if (!lib || !lib.entry || (!lib.entry.status && lib.entry.progress == null)) return "0 % · noch nicht begonnen";
+  if (lib.entry.status === "read") return "100 % · fertig";
+  const info = progressInfo(lib);
+  const page = currentPage(lib);
+  return `${info.pct} %${Number.isFinite(page) && page > 0 ? " · S. " + page : ""}`;
+}
+
 async function renderBuddy() {
   const box = $("buddy");
   let first = !buddy.reads.length;
@@ -2158,23 +2173,72 @@ async function renderBuddy() {
   const nick = friendNick || "deine Freundin";
   const active = buddy.reads.find((r) => r.status === "active");
   const proposals = buddy.reads.filter((r) => r.status === "proposed");
-  box.replaceChildren(el("h3", {}, "Buddy Read"));
+  box.replaceChildren();
 
-  // --- aktuelles Buch ---
+  // --- aktuelles Buch: kompakte weiße Karte mit gemeinsamem Lesepfad ---
   if (active) {
     const b = active.book;
     const mine = myLibrary.find((x) => x.id === b.id);
     const theirs = buddy.friendLib.find((x) => x.id === b.id);
-    const card = el("div", { className: "buddy-card" });
-    const cover = el("div", { className: "buddy-cover" });
+    const myPct = libPct(mine);
+    const theirPct = libPct(theirs);
+    const myPage = currentPage(mine);
+    const total = (mine && mine.pages) || b.pages || 0;
+    const day = Math.max(1, Math.floor((Date.now() - new Date(active.created_at).getTime()) / 86400000) + 1);
+
+    const card = el("div", { className: "bcard" });
+    const cover = el("div", { className: "bcard-cover" });
     cover.append(buddyCover(b));
     cover.onclick = () => showDetail(mine || b, false);
-    const info = el("div", { className: "buddy-info" }, el("div", { className: "buddy-title" }, b.title), el("div", { className: "meta" }, b.authors.join(", ")));
-    info.append(buddyProgressRow("Du", mine), buddyProgressRow(nick, theirs));
+    const head = el(
+      "div",
+      { className: "bcard-head" },
+      el("div", { className: "bcard-titleline" }, el("div", { className: "bcard-title" }, b.title), el("div", { className: "bcard-day" }, `Buddy Read · Tag ${day}`)),
+      el("div", { className: "meta" }, b.authors.join(", "))
+    );
+
+    // Lesepfad: ein Balken, zwei Marker, Kommentar-Punkte
+    const track = el("div", { className: "btrack" });
+    track.append(el("div", { className: "btrack-bg" }));
+    const fillF = el("div", { className: "btrack-fill friend" });
+    fillF.style.width = theirPct + "%";
+    const fillM = el("div", { className: "btrack-fill mine" });
+    fillM.style.width = myPct + "%";
+    track.append(fillM, fillF);
+    const myComments = buddy.comments.filter((c) => c.read_id === active.id && c.page != null);
+    if (total) {
+      for (const c of myComments) {
+        const pos = Math.min(100, Math.round((c.page / total) * 100));
+        const locked = c.user_id !== me.id && c.page > myPage;
+        const dot = el("div", { className: "btrack-dot" + (locked ? " locked" : "") });
+        dot.style.left = pos + "%";
+        if (locked) dot.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+        track.append(dot);
+      }
+    }
+    const initial = (name) => ((name || "?").trim()[0] || "?").toUpperCase();
+    const mark = (cls, pct, text) => {
+      const m = el("div", { className: "btrack-mark " + cls }, text);
+      m.style.left = Math.min(97, Math.max(3, pct)) + "%";
+      return m;
+    };
+    track.append(mark("friend", theirPct, initial(friend ? friend.display_name : nick)), mark("mine", myPct, initial(me.display_name)));
+
+    const stats = el(
+      "div",
+      { className: "bcard-stats" },
+      el("span", {}, el("strong", { className: "mine" }, "Du "), libLabel(mine)),
+      el("span", {}, el("strong", { className: "friend" }, nick + " "), libLabel(theirs))
+    );
+    const topRow = el("div", { className: "bcard-top" }, cover, el("div", { className: "bcard-main" }, head, track));
+    card.append(topRow, stats);
+
+    // Update + Kommentare in einer Zeile
+    const actions = el("div", { className: "bcard-actions" });
     if (!mine) {
       const add = el("button", { className: "btn", type: "button" }, "In meine Bibliothek");
       add.onclick = () => showDetail(b, false, { owned: false, status: "reading" });
-      info.append(add);
+      actions.append(add);
     } else if (mine.entry.status === "reading") {
       const { form, msg } = buildProgressForm(mine, {
         compact: true,
@@ -2186,28 +2250,25 @@ async function renderBuddy() {
           checkBuddyUnlocks(mine.id, before);
         },
       });
-      info.append(form, msg);
+      actions.append(el("div", { className: "bcard-form" }, form, msg));
     }
-    card.append(cover, info);
-    box.append(card);
-
-    // --- Kommentare: nur ein Knopf, die Liste liegt auf einer eigenen Seite ---
-    const myPage = currentPage(mine);
     const others = buddy.comments.filter((c) => c.read_id === active.id && c.user_id !== me.id);
     const seen = buddySeenAt(active.id);
     const fresh = others.filter((c) => c.created_at > seen && (c.page == null || c.page <= myPage)).length;
-    const total = buddy.comments.filter((c) => c.read_id === active.id).length;
-    const open = el("button", { className: "buddy-open", type: "button" }, el("span", {}, total ? `Kommentare (${total})` : "Kommentare"));
+    const open = el("button", { className: "bcard-comments", type: "button" }, el("span", {}, "Kommentare"));
     if (fresh) open.append(el("span", { className: "buddy-new" }, `${fresh} neu`));
     open.onclick = () => showTab("buddy");
-    box.append(open);
+    actions.append(open);
+    card.append(actions);
+    box.append(card);
   } else {
-    box.append(el("p", { className: "meta" }, "Gerade läuft kein Buddy Read. Schlagt unten eins vor."));
+    box.append(el("h3", {}, "Buddy Read"), el("p", { className: "meta" }, "Gerade läuft kein Buddy Read. Schlagt unten eins vor."));
   }
 
-  // --- Vorschläge zur Abstimmung ---
-  const head = el("div", { className: "shelf-head" }, el("h4", {}, "Zur Abstimmung"));
-  const addBtn = el("button", { className: "shelf-add", type: "button", "aria-label": "Buch vorschlagen" }, "+");
+  // --- Vorschläge: eine Zeile pro Buch ---
+  const head = el("div", { className: "bprop-head" }, el("span", {}, "Zur Abstimmung"));
+  const addBtn = el("button", { className: "bprop-add", type: "button", "aria-label": "Buch vorschlagen" }, "+");
+  addBtn.setAttribute("aria-label", "Buch vorschlagen");
   addBtn.onclick = () => {
     addKind = "buddy";
     $("add-title").textContent = "Buddy Read vorschlagen";
@@ -2225,42 +2286,45 @@ async function renderBuddy() {
     const myVote = votes.find((v) => v.user_id === me.id);
     const theirVote = votes.find((v) => v.user_id !== me.id);
     const fmt = (v) => (v ? (v.vote ? "dafür" : "dagegen") : "offen");
-    const row = el("div", { className: "buddy-proposal" });
-    const cv = el("div", { className: "buddy-cover small" });
-    cv.append(buddyCover(p.book));
-    const txt = el("div", { className: "buddy-info" }, el("div", { className: "buddy-title" }, p.book.title), el("div", { className: "meta" }, p.book.authors.join(", ")), el("div", { className: "meta" }, `Du: ${fmt(myVote)} · ${nick}: ${fmt(theirVote)}`));
-    const actions = el("div", { className: "buddy-actions" });
     const vote = async (value) => {
       const { error } = await sb.from("buddy_votes").upsert({ read_id: p.id, user_id: me.id, vote: value }, { onConflict: "read_id,user_id" });
       if (error) return alert("Das hat nicht geklappt: " + error.message);
       renderBuddy();
     };
-    const yes = el("button", { className: "btn" + (myVote && myVote.vote ? "" : " secondary"), type: "button" }, "Dafür");
-    const no = el("button", { className: "btn" + (myVote && !myVote.vote ? "" : " secondary"), type: "button" }, "Dagegen");
+    const cv = el("div", { className: "bprop-cover" });
+    cv.append(buddyCover(p.book));
+    const txt = el(
+      "div",
+      { className: "bprop-text" },
+      el("div", { className: "bprop-title" }, p.book.title, el("span", { className: "meta" }, " · " + p.book.authors.join(", "))),
+      el("div", { className: "meta" }, `Du: ${fmt(myVote)} · ${nick}: ${fmt(theirVote)}`)
+    );
+    const acts = el("div", { className: "bprop-actions" });
+    const yes = el("button", { className: "bprop-btn" + (myVote && myVote.vote ? " on" : ""), type: "button" }, "Dafür");
+    const no = el("button", { className: "bprop-btn no" + (myVote && !myVote.vote ? " on" : ""), type: "button", title: "Dagegen" }, "✕");
+    no.setAttribute("aria-label", "Dagegen");
     yes.onclick = () => vote(true);
     no.onclick = () => vote(false);
-    actions.append(yes, no);
+    acts.append(yes, no);
     if (myVote && myVote.vote && theirVote && theirVote.vote) {
-      const start = el("button", { className: "btn", type: "button" }, "Als Buddy Read starten");
+      const start = el("button", { className: "bprop-btn on", type: "button" }, "Starten");
       start.onclick = async () => {
         if (active) await sb.from("buddy_reads").update({ status: "done" }).eq("id", active.id);
         await sb.from("buddy_reads").update({ status: "active" }).eq("id", p.id);
         renderBuddy();
       };
-      actions.append(start);
+      acts.append(start);
     }
     if (p.proposed_by === me.id) {
-      const withdraw = el("button", { className: "link-btn", type: "button" }, "Zurückziehen");
+      const withdraw = el("button", { className: "bprop-x", type: "button", title: "Vorschlag zurückziehen" }, "Zurückziehen");
       withdraw.onclick = async () => {
         if (!confirm("Vorschlag zurückziehen?")) return;
         await sb.from("buddy_reads").delete().eq("id", p.id);
         renderBuddy();
       };
-      actions.append(withdraw);
+      txt.append(withdraw);
     }
-    txt.append(actions);
-    row.append(cv, txt);
-    box.append(row);
+    box.append(el("div", { className: "bprop" }, cv, txt, acts));
   }
 }
 
