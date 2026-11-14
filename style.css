@@ -673,3 +673,8 @@ header h1 .logo-book { color: #e4bc7f; flex-shrink: 0; }
 .bottom-nav .tab.active { color: #e4bc7f; background: rgba(228, 188, 127, 0.18); }
 main { padding-bottom: 96px; }
 #logout { margin-top: 12px; font-size: 1rem; color: #2d2e34; }
+
+/* Kopfzeile mit Logo-Dateien (Buch + Schriftzug) */
+header h1 { gap: 10px; }
+.logo-book-img { height: 36px; width: auto; display: block; }
+.logo-word-img { height: 17px; width: auto; display: block; }
