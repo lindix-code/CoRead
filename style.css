@@ -556,3 +556,88 @@ header { flex-wrap: wrap; gap: 4px; }
 #goal-title { margin: 0 32px 8px 0; font-size: 1.2rem; }
 #goal-content input[type="number"] { padding: 10px 12px; font-size: 1rem; border: 1px solid #cbbfb4; border-radius: 8px; width: 100%; box-sizing: border-box; }
 #goal-content .actions { margin-top: 12px; }
+
+/* BookClub: Gemeinsame Klassiker */
+.classics { margin-top: 28px; scroll-margin-top: 12px; }
+.classics h3 { margin: 0 0 4px; font-size: 1.2rem; }
+.classics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 22px 12px;
+  margin-top: 14px;
+}
+.classic {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.classic:focus-visible { outline: 3px solid #6b3f2a; outline-offset: 3px; border-radius: 6px; }
+.classic-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 8px;
+  border-radius: 3px 6px 6px 3px;
+  background: var(--cover);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12), inset 3px 0 0 rgba(0, 0, 0, 0.12);
+  filter: grayscale(1);
+  opacity: 0.5;
+  transition: filter 0.3s, opacity 0.3s, box-shadow 0.3s;
+}
+.classic-cover.done {
+  filter: none;
+  opacity: 1;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28), inset 3px 0 0 rgba(0, 0, 0, 0.18);
+}
+.classic-cover::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  pointer-events: none;
+}
+.classic-cover-title {
+  margin: auto 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+.classic-cover-author {
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+.classic-check {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #2f6b3a;
+  border: 2px solid #faf7f2;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.classic-title { font-size: 0.78rem; font-weight: 600; line-height: 1.25; }
+.classic-readers { font-size: 0.7rem; color: #7a6e65; min-height: 1em; }
