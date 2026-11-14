@@ -660,7 +660,7 @@ header { flex-wrap: wrap; gap: 4px; }
   background: url("assets/splash.jpg") center / contain no-repeat;
   transition: transform 1.6s cubic-bezier(0.45, 0, 0.2, 1);
 }
-#splash.up::before { transform: translateY(-27%) scale(0.55); }
+#splash.up::before { transform: translateY(-22%) scale(0.68); }
 #splash.instant::before { transition: none; }
 #splash.leave { opacity: 0; pointer-events: none; }
 #splash[hidden] { display: none; }
@@ -670,7 +670,9 @@ body.auth-mode { background: var(--primary); }
 body.auth-mode header { display: none; }
 body.auth-mode main { position: relative; z-index: 10000; }
 #view-auth { opacity: 0; }
-body.auth-mode #view-auth { padding-top: 34vh; }
+body.auth-mode #view-auth { padding-top: 44vh; }
+body.auth-mode #auth-form { max-width: 300px; }
+#view-auth h2 { display: none; }
 body.auth-up #view-auth { opacity: 1; transition: opacity 0.7s ease 1.6s; }
 body.auth-up.auth-instant #view-auth { transition-delay: 0s; }
 body.auth-mode #view-auth h2 { color: #f6f0e8; text-align: center; margin: 0 0 4px; }
@@ -807,4 +809,5 @@ dialog.sheet[open] { display: flex; }
 @media (min-width: 700px) {
   #splash.up::before { transform: translateY(-29%) scale(0.65); }
   body.auth-mode #view-auth { padding-top: 38vh; }
+  body.auth-mode #auth-form { max-width: 420px; }
 }
