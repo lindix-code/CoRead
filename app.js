@@ -275,7 +275,7 @@ async function loadFriend() {
 // ---------- Cover-Upload ----------
 
 // Verkleinert das Bild (max. 600 px breit) und wandelt es in JPEG um
-async function resizeToJpeg(file, maxWidth = 600) {
+async function resizeToJpeg(file, maxWidth = 480) {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxWidth / bitmap.width);
   const canvas = document.createElement("canvas");
@@ -286,7 +286,7 @@ async function resizeToJpeg(file, maxWidth = 600) {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("Das Bild konnte nicht verarbeitet werden."))),
       "image/jpeg",
-      0.85
+      0.82
     );
   });
 }
@@ -295,9 +295,75 @@ async function uploadCover(book, file) {
   const blob = await resizeToJpeg(file);
   const safeId = book.id.replace(/[^a-zA-Z0-9_-]/g, "_");
   const path = `${me.id}/${safeId}-${Date.now()}.jpg`;
-  const { error } = await sb.storage.from("covers").upload(path, blob, { contentType: "image/jpeg" });
+  const { error } = await sb.storage.from("covers").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
   if (error) throw error;
   return sb.storage.from("covers").getPublicUrl(path).data.publicUrl;
+}
+
+// Bereits hochgeladene Bilder nachträglich verkleinern (einmal pro Gerät/Konto ausführbar)
+async function optimizeMyImages(report) {
+  let count = 0;
+  let saved = 0;
+
+  for (const b of myLibrary) {
+    const url = b.entry && b.entry.customCover;
+    if (!url || !url.includes("/covers/")) continue;
+    try {
+      report(`Prüfe Cover „${b.title}“ …`);
+      const blob = await (await fetch(url)).blob();
+      if (blob.size < 60000) continue;
+      const small = await resizeToJpeg(blob);
+      if (small.size > blob.size * 0.9) continue;
+      const newUrl = await uploadCover(b, small);
+      const { error } = await sb.from("library_entries").update({ custom_cover: newUrl }).eq("user_id", me.id).eq("book_id", b.id);
+      if (error) throw error;
+      const oldPath = decodeURIComponent(url.split("/covers/")[1].split("?")[0]);
+      await sb.storage.from("covers").remove([oldPath]);
+      count++;
+      saved += blob.size - small.size;
+    } catch (err) {
+      console.warn("Cover nicht optimiert:", b.title, err);
+    }
+  }
+
+  const { data: posts } = await sb.from("posts").select("id, images").eq("user_id", me.id);
+  for (const p of posts || []) {
+    if (!(p.images || []).length) continue;
+    report("Prüfe Beitragsfotos …");
+    const newImages = [];
+    const oldPaths = [];
+    try {
+      for (const path of p.images) {
+        const { data: blob, error } = await sb.storage.from("post-images").download(path);
+        if (error || blob.size < 150000) {
+          newImages.push(path);
+          continue;
+        }
+        const small = await resizeToJpeg(blob, 1000);
+        if (small.size > blob.size * 0.9) {
+          newImages.push(path);
+          continue;
+        }
+        const newPath = `${me.id}/${crypto.randomUUID()}.jpg`;
+        const { error: upError } = await sb.storage
+          .from("post-images")
+          .upload(newPath, small, { contentType: "image/jpeg", cacheControl: "31536000" });
+        if (upError) throw upError;
+        newImages.push(newPath);
+        oldPaths.push(path);
+        count++;
+        saved += blob.size - small.size;
+      }
+      if (oldPaths.length) {
+        const { error } = await sb.from("posts").update({ images: newImages }).eq("id", p.id);
+        if (error) throw error;
+        await sb.storage.from("post-images").remove(oldPaths);
+      }
+    } catch (err) {
+      console.warn("Beitragsfotos nicht optimiert:", p.id, err);
+    }
+  }
+  return { count, saved };
 }
 
 // ---------- Anzeige-Helfer ----------
@@ -311,7 +377,7 @@ function el(tag, props = {}, ...children) {
 
 function coverElement(book) {
   if (!book.cover) return el("div", { className: "cover-placeholder" }, "Kein Cover");
-  const img = el("img", { src: book.cover, alt: "Cover: " + book.title, loading: "lazy" });
+  const img = el("img", { src: book.cover, alt: "Cover: " + book.title, loading: "lazy", decoding: "async" });
   img.onerror = () => {
     if (book.fallbackCover && img.src !== book.fallbackCover) {
       img.src = book.fallbackCover;
@@ -1484,9 +1550,9 @@ async function uploadPostPhotos(files) {
   const uploaded = [];
   try {
     for (const file of files) {
-      const blob = await resizeToJpeg(file, 1200);
+      const blob = await resizeToJpeg(file, 1000);
       const path = `${me.id}/${crypto.randomUUID()}.jpg`;
-      const { error } = await sb.storage.from("post-images").upload(path, blob, { contentType: "image/jpeg" });
+      const { error } = await sb.storage.from("post-images").upload(path, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
       if (error) throw error;
       uploaded.push(path);
     }
@@ -2003,6 +2069,21 @@ function showTab(name) {
 $("tab-home").onclick = () => showTab("home");
 $("tab-bookclub").onclick = () => showTab("bookclub");
 $("tab-profile").onclick = () => showTab("profile");
+$("optimize-images").onclick = async () => {
+  const btn = $("optimize-images");
+  const status = $("optimize-status");
+  btn.disabled = true;
+  try {
+    const { count, saved } = await optimizeMyImages((text) => (status.textContent = text));
+    await reloadMyLibrary();
+    status.textContent = count
+      ? `${count} ${count === 1 ? "Bild" : "Bilder"} verkleinert, etwa ${(saved / 1048576).toFixed(1).replace(".", ",")} MB gespart.`
+      : "Alle deine Bilder sind schon klein genug.";
+  } catch (err) {
+    status.textContent = "Das hat nicht geklappt: " + err.message;
+  }
+  btn.disabled = false;
+};
 $("tab-library").onclick = () => showTab("library");
 $("tab-friend").onclick = () => showTab("friend");
 $("lib-mine").onclick = () => {

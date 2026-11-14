@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -97,6 +97,10 @@
     <section id="view-profile" hidden>
       <h2>Profil</h2>
       <p class="meta">Hier entstehen bald Profil, Passwort und Farben.</p>
+      <h3>Bilder</h3>
+      <p class="meta">Verkleinert deine bereits hochgeladenen Cover und Beitragsfotos, damit sie schneller laden. Die Schärfe auf dem Handy bleibt erhalten.</p>
+      <button id="optimize-images" class="btn secondary" type="button">Bilder optimieren</button>
+      <p id="optimize-status" class="meta" role="status"></p>
       <button id="logout" class="btn secondary" type="button" hidden>Abmelden</button>
     </section>
 
@@ -239,6 +243,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
