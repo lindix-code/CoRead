@@ -22,11 +22,11 @@
   --line: #d3d1e2; --surface2: #e3e2ee; --hair: #e8e7f0; --gold-text: #8a6a2f;
   --tint-fresh: #f8f1e6; --tint-own: #eceaf5; --tint-auto: #f6eddc; --tint-toggle: #e9e7f3;
 }
-/* Flieder dunkel */
+/* Flieder dunkel: wie Dunkel, nur Petrol -> Indigo/Lila */
 :root[data-theme="flieder-dunkel"] {
-  --primary: #7a678f; --mint: #c9c9de;
-  --bg: #44435d; --card: #52516d; --text: #f6f0e8; --text2: #e2e2ee; --muted: #c0bfd6;
-  --line: #6c6a8a; --surface2: #5f5e7c; --hair: #5f5e7c; --gold-text: #e4bc7f;
+  --primary: #44435d; --mint: #c9c9de;
+  --bg: #2d2e34; --card: #393a42; --text: #f6f0e8; --text2: #e2e2e2; --muted: #b3b3bc;
+  --line: #5a5a65; --surface2: #4a4b54; --hair: #4a4b54; --gold-text: #e4bc7f;
   --tint-fresh: rgba(228, 188, 127, 0.16); --tint-own: rgba(201, 201, 222, 0.14); --tint-auto: rgba(228, 188, 127, 0.1); --tint-toggle: rgba(201, 201, 222, 0.14);
   color-scheme: dark;
 }
