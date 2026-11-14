@@ -15,6 +15,25 @@
   --tint-fresh: rgba(228, 188, 127, 0.16); --tint-own: rgba(187, 216, 200, 0.14); --tint-auto: rgba(228, 188, 127, 0.1); --tint-toggle: rgba(187, 216, 200, 0.14);
   color-scheme: dark;
 }
+/* Flieder hell */
+:root[data-theme="flieder-hell"] {
+  --primary: #44435d; --mint: #c9c9de;
+  --bg: #f1eff6; --card: #fff; --text: #2d2e34; --text2: #4f4f63; --muted: #6c6b82;
+  --line: #d3d1e2; --surface2: #e3e2ee; --hair: #e8e7f0; --gold-text: #8a6a2f;
+  --tint-fresh: #f8f1e6; --tint-own: #eceaf5; --tint-auto: #f6eddc; --tint-toggle: #e9e7f3;
+}
+/* Flieder dunkel */
+:root[data-theme="flieder-dunkel"] {
+  --primary: #7a678f; --mint: #c9c9de;
+  --bg: #44435d; --card: #52516d; --text: #f6f0e8; --text2: #e2e2ee; --muted: #c0bfd6;
+  --line: #6c6a8a; --surface2: #5f5e7c; --hair: #5f5e7c; --gold-text: #e4bc7f;
+  --tint-fresh: rgba(228, 188, 127, 0.16); --tint-own: rgba(201, 201, 222, 0.14); --tint-auto: rgba(228, 188, 127, 0.1); --tint-toggle: rgba(201, 201, 222, 0.14);
+  color-scheme: dark;
+}
+:root[data-theme="flieder-hell"] #splash::before,
+:root[data-theme="flieder-dunkel"] #splash::before { background-image: url("assets/splash-flieder.jpg"); }
+:root[data-theme="flieder-hell"] #splash,
+:root[data-theme="flieder-dunkel"] #splash { background: #44435d; }
 
 body {
   margin: 0;
@@ -890,29 +909,46 @@ header { padding-right: 8px; }
 
 #logo-home { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
-/* Dunkel: Formularfelder, Dialoge, Texte */
+/* Dunkel (Dunkel + Flieder dunkel): Formularfelder, Dialoge, Texte */
 input, select, textarea { background: var(--card); color: var(--text); }
 input::placeholder, textarea::placeholder { color: var(--muted); }
 dialog { background: var(--card); color: var(--text); }
 body.auth-mode input { background: #fff; color: #2d2e34; }
-:root[data-theme="dark"] .classic-title { color: var(--text); }
+:root[data-theme="dark"] .classic-title,
+:root[data-theme="flieder-dunkel"] .classic-title { color: var(--text); }
 
-/* Dunkel: Ziffern in Mint, Zwischenüberschriften in Gold */
+/* Dunkle Themes: Ziffern in Mint/Lavendel, Zwischenüberschriften in Gold */
 :root[data-theme="dark"] .tile-number,
 :root[data-theme="dark"] .btile-number,
-:root[data-theme="dark"] .bcard-stats .friend { color: var(--mint); }
+:root[data-theme="dark"] .bcard-stats .friend,
+:root[data-theme="flieder-dunkel"] .tile-number,
+:root[data-theme="flieder-dunkel"] .btile-number,
+:root[data-theme="flieder-dunkel"] .bcard-stats .friend { color: var(--mint); }
 :root[data-theme="dark"] .bprop-head,
 :root[data-theme="dark"] .shelf-head h3,
 :root[data-theme="dark"] .overview h3,
 :root[data-theme="dark"] .classics h3,
 :root[data-theme="dark"] .buddy h3,
 :root[data-theme="dark"] main h2,
-:root[data-theme="dark"] main h3 { color: var(--accent); }
+:root[data-theme="dark"] main h3,
+:root[data-theme="flieder-dunkel"] .bprop-head,
+:root[data-theme="flieder-dunkel"] .shelf-head h3,
+:root[data-theme="flieder-dunkel"] .overview h3,
+:root[data-theme="flieder-dunkel"] .classics h3,
+:root[data-theme="flieder-dunkel"] .buddy h3,
+:root[data-theme="flieder-dunkel"] main h2,
+:root[data-theme="flieder-dunkel"] main h3 { color: var(--accent); }
 
-/* Dunkel: nicht aktive Jahres-Reiter in Mint */
-:root[data-theme="dark"] .subtabs .btn.secondary { background: var(--mint); color: var(--on-accent); }
+/* Nicht aktive Jahres-Reiter in Mint/Lavendel (dunkle Themes) */
+:root[data-theme="dark"] .subtabs .btn.secondary,
+:root[data-theme="flieder-dunkel"] .subtabs .btn.secondary { background: var(--mint); color: var(--on-accent); }
 
-/* Kopfhörer weiß im Dunkelmodus */
-:root[data-theme="dark"] .badge-audio img { filter: brightness(0) invert(1) drop-shadow(0 0 1.5px #000); }
+/* Kopfhörer weiß in dunklen Themes */
+:root[data-theme="dark"] .badge-audio img,
+:root[data-theme="flieder-dunkel"] .badge-audio img { filter: brightness(0) invert(1) drop-shadow(0 0 1.5px #000); }
 /* Etwas mehr Abstand zwischen den Jahres-Reitern */
 .subtabs { gap: 10px; }
+
+:root[data-theme="flieder-hell"] body.auth-mode,
+:root[data-theme="flieder-dunkel"] body.auth-mode { background: #44435d; }
+.swatch span.two { background: linear-gradient(135deg, var(--a) 50%, var(--b) 50%) !important; }

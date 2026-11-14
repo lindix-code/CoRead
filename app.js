@@ -3092,17 +3092,28 @@ setTimeout(() => {
 }, 8000); // Sicherheitsnetz, falls etwas hängt
 
 
-// Farbwelt (Petrol / Dunkel)
+// Farbwelt (Petrol / Dunkel / Flieder hell / Flieder dunkel)
+const THEMES = {
+  petrol: { bar: "#345457", flieder: false },
+  dark: { bar: "#345457", flieder: false },
+  "flieder-hell": { bar: "#44435d", flieder: true },
+  "flieder-dunkel": { bar: "#44435d", flieder: true },
+};
 function applyTheme(t) {
-  const dark = t === "dark";
-  if (dark) document.documentElement.setAttribute("data-theme", "dark");
-  else document.documentElement.removeAttribute("data-theme");
-  try { localStorage.setItem("coread-theme", dark ? "dark" : "petrol"); } catch (e) {}
+  if (!THEMES[t]) t = "petrol";
+  if (t === "petrol") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  try { localStorage.setItem("coread-theme", t); } catch (e) {}
   document.querySelectorAll("[data-theme-pick]").forEach((b) => {
-    const on = b.dataset.themePick === (dark ? "dark" : "petrol");
+    const on = b.dataset.themePick === t;
     b.classList.toggle("on", on);
     b.setAttribute("aria-pressed", on ? "true" : "false");
   });
+  const meta = $("theme-meta"); if (meta) meta.setAttribute("content", THEMES[t].bar);
+  const f = THEMES[t].flieder;
+  const fav = $("fav-link"), touch = $("touch-link");
+  if (fav) fav.setAttribute("href", f ? "assets/favicon-flieder-32.png?v=1" : "assets/favicon-32.png?v=2");
+  if (touch) touch.setAttribute("href", f ? "assets/apple-touch-icon-flieder.png?v=1" : "assets/apple-touch-icon.png?v=2");
 }
 document.querySelectorAll("[data-theme-pick]").forEach((b) => { b.onclick = () => applyTheme(b.dataset.themePick); });
-applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "petrol");
+applyTheme(document.documentElement.getAttribute("data-theme") || "petrol");
