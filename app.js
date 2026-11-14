@@ -2093,6 +2093,7 @@ function showTab(name) {
   }
   if (name === "library") renderLibrary();
   if (name === "home") renderHome();
+  if (name === "profile") renderProfile();
   if (name === "bookclub") {
     renderClassics();
     loadClassics().then(renderClassics);
@@ -2106,6 +2107,68 @@ function showTab(name) {
 $("tab-home").onclick = () => showTab("home");
 $("tab-bookclub").onclick = () => showTab("bookclub");
 $("tab-profile").onclick = () => showTab("profile");
+
+// ---------- Profil / Einstellungen ----------
+
+let appInfo = {};
+
+async function renderProfile() {
+  const { data } = await sb.auth.getUser();
+  const email = data && data.user ? data.user.email : "";
+  $("profile-info").textContent = `${me.display_name}${email ? " · " + email : ""}`;
+
+  const { data: rows, error } = await sb.from("app_info").select("key, value");
+  appInfo = {};
+  if (!error) for (const r of rows || []) appInfo[r.key] = r.value;
+
+  const number = (appInfo.support_whatsapp || "").replace(/\D/g, "");
+  const link = $("support-link");
+  if (number) {
+    link.href = `https://wa.me/${number}?text=${encodeURIComponent("Hallo Lindi, bei CoRead gibt es etwas: ")}`;
+    link.hidden = false;
+    $("support-status").textContent = "";
+  } else {
+    link.hidden = true;
+    $("support-status").textContent = "Der Kontakt ist noch nicht eingerichtet.";
+  }
+  $("impressum-address").textContent = appInfo.impressum_address || "Die Angaben sind noch nicht eingetragen.";
+  $("impressum-note").textContent = appInfo.impressum_note || "";
+}
+
+$("pw-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const status = $("pw-status");
+  const pw = $("pw-new").value;
+  if (pw.length < 8) {
+    status.textContent = "Das Passwort braucht mindestens 8 Zeichen.";
+    return;
+  }
+  if (pw !== $("pw-repeat").value) {
+    status.textContent = "Die beiden Passwörter sind nicht gleich.";
+    return;
+  }
+  status.textContent = "Speichere …";
+  const { error } = await sb.auth.updateUser({ password: pw });
+  if (error) {
+    status.textContent = "Das hat nicht geklappt: " + error.message;
+    return;
+  }
+  $("pw-form").reset();
+  status.textContent = "Passwort geändert.";
+};
+
+$("mail-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const status = $("mail-status");
+  status.textContent = "Speichere …";
+  const { error } = await sb.auth.updateUser({ email: $("mail-new").value.trim() });
+  if (error) {
+    status.textContent = "Das hat nicht geklappt: " + error.message;
+    return;
+  }
+  $("mail-form").reset();
+  status.textContent = "Fast fertig: Schau in dein Postfach und bestätige die Änderung über den Link in der E-Mail.";
+};
 $("tab-library").onclick = () => showTab("library");
 $("tab-friend").onclick = () => showTab("friend");
 $("lib-mine").onclick = () => {

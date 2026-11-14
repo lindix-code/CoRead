@@ -318,3 +318,12 @@ create policy "classic_reads_insert" on public.classic_reads for insert to authe
   with check (user_id = auth.uid());
 create policy "classic_reads_delete" on public.classic_reads for delete to authenticated
   using (user_id = auth.uid());
+
+-- ---------- App-Infos (Support, Impressum) ----------
+create table if not exists public.app_info (
+  key text primary key,
+  value text not null
+);
+alter table public.app_info enable row level security;
+create policy "app_info_select" on public.app_info for select to authenticated
+  using (true);

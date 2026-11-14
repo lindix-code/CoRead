@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=11">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -96,7 +96,59 @@
     <!-- Profil (Platzhalter) -->
     <section id="view-profile" hidden>
       <h2>Profil</h2>
-      <p class="meta">Hier entstehen bald Profil, Passwort und Farben.</p>
+      <p id="profile-info" class="meta"></p>
+
+      <div class="settings">
+        <details class="settings-item">
+          <summary>Passwort ändern</summary>
+          <form id="pw-form" class="settings-body">
+            <input id="pw-new" type="password" placeholder="Neues Passwort (mind. 8 Zeichen)" minlength="8" autocomplete="new-password" required>
+            <input id="pw-repeat" type="password" placeholder="Neues Passwort wiederholen" minlength="8" autocomplete="new-password" required>
+            <button type="submit" class="btn">Passwort speichern</button>
+            <p id="pw-status" class="meta" role="status"></p>
+          </form>
+        </details>
+
+        <details class="settings-item">
+          <summary>E-Mail ändern</summary>
+          <form id="mail-form" class="settings-body">
+            <input id="mail-new" type="email" placeholder="Neue E-Mail-Adresse" autocomplete="email" required>
+            <button type="submit" class="btn">E-Mail speichern</button>
+            <p id="mail-status" class="meta" role="status"></p>
+          </form>
+        </details>
+
+        <details class="settings-item">
+          <summary>Erscheinungsbild</summary>
+          <div class="settings-body">
+            <div class="meta">Farbe</div>
+            <div class="swatches">
+              <button type="button" class="swatch on" aria-pressed="true"><span style="background:#345457"></span>Petrol</button>
+              <button type="button" class="swatch" disabled><span style="background:#e2e2e2"></span>Farbe 2 · folgt</button>
+              <button type="button" class="swatch" disabled><span style="background:#e2e2e2"></span>Farbe 3 · folgt</button>
+            </div>
+            <label class="check"><input type="checkbox" disabled> Dunkelmodus · folgt</label>
+          </div>
+        </details>
+
+        <details class="settings-item">
+          <summary>Support / Problem melden</summary>
+          <div class="settings-body">
+            <p>Etwas hakt oder du hast eine Idee? Schreib mir, ich kümmere mich darum.</p>
+            <a id="support-link" class="btn" href="#" target="_blank" rel="noopener" hidden>Per WhatsApp schreiben</a>
+            <p id="support-status" class="meta"></p>
+          </div>
+        </details>
+
+        <details class="settings-item">
+          <summary>Impressum</summary>
+          <div class="settings-body">
+            <p id="impressum-address" class="pre"></p>
+            <p id="impressum-note" class="pre"></p>
+          </div>
+        </details>
+      </div>
+
       <button id="logout" class="btn secondary" type="button" hidden>Abmelden</button>
     </section>
 
@@ -239,6 +291,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
