@@ -669,7 +669,7 @@ header { flex-wrap: wrap; gap: 4px; }
 body.auth-mode { background: var(--primary); }
 body.auth-mode header { display: none; }
 body.auth-mode main { position: relative; z-index: 10000; }
-body.auth-mode #view-auth { padding-top: 34vh; opacity: 0; transition: opacity 0.6s ease 0.5s; }
+body.auth-mode #view-auth { padding-top: 34vh; opacity: 0; transition: opacity 0.6s ease 0.95s; }
 body.auth-up #view-auth { opacity: 1; }
 body.auth-mode #view-auth h2 { color: #f6f0e8; text-align: center; margin: 0 0 4px; }
 body.auth-mode #auth-status { color: var(--mint); text-align: center; }
@@ -800,3 +800,9 @@ header h1 { gap: 10px; }
 .buddy-composer .icon-btn svg { width: 26px; height: 26px; }
 dialog.sheet { margin: auto auto 0; width: 100%; max-width: 640px; border-radius: 20px 20px 0 0; padding: 24px 20px 28px; box-sizing: border-box; display: none; flex-direction: column; gap: 10px; }
 dialog.sheet[open] { display: flex; }
+
+/* Desktop: Logo kleiner und weiter oben, Formular mit mehr Abstand */
+@media (min-width: 700px) {
+  #splash.up::before { transform: translateY(-31%) scale(0.48); }
+  body.auth-mode #view-auth { padding-top: 42vh; }
+}
