@@ -783,9 +783,8 @@ function showDetail(book, readOnly = false, preset = null) {
 async function renderLibrary() {
   $("lib-mine").className = libView === "mine" ? "btn" : "btn secondary";
   $("lib-friend").className = libView === "friend" ? "btn" : "btn secondary";
-  $("lib-friend").hidden = !friend;
+  $("lib-friend").hidden = false; // immer sichtbar; ohne Verbindung erscheint ein Hinweis
   $("lib-friend").textContent = `${friendNick}s Bücher`;
-  if (libView === "friend" && !friend) libView = "mine"; // Freundin (noch) nicht verbunden
   $("lib-mine").className = libView === "mine" ? "btn" : "btn secondary";
   $("lib-friend").className = libView === "friend" ? "btn" : "btn secondary";
   try {
@@ -794,7 +793,12 @@ async function renderLibrary() {
 
   if (libView === "mine") {
     renderLists(myLibrary, false);
+  } else if (!friend) {
+    $("lib-lists").replaceChildren();
+    $("library").replaceChildren();
+    $("library-status").textContent = `Du bist noch nicht mit ${friendNick} verbunden. Im Reiter „${friendNick}“ (zwei Personen unten) kannst du den Einladungscode eingeben oder teilen.`;
   } else if (friend) {
+    $("lib-friend").hidden = false;
     $("lib-lists").replaceChildren();
     $("library").replaceChildren();
     $("library-status").textContent = "Lade …";
