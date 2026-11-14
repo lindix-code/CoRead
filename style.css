@@ -666,7 +666,9 @@ header { flex-wrap: wrap; gap: 4px; }
 #splash[hidden] { display: none; }
 
 /* Ausgeloggt: Login auf Petrol unter dem kleinen Logo, ohne Kopfzeile */
-body.auth-mode { background: var(--primary); }
+html:has(body.auth-mode) { overflow: hidden; overscroll-behavior: none; }
+body.auth-mode { background: var(--primary); position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; touch-action: none; }
+body.auth-mode input, body.auth-mode button { touch-action: manipulation; }
 body.auth-mode header { display: none; }
 body.auth-mode main { position: relative; z-index: 10000; }
 #view-auth { opacity: 0; }
@@ -807,7 +809,7 @@ dialog.sheet[open] { display: flex; }
 
 /* Desktop: Logo kleiner und weiter oben, Formular mit mehr Abstand */
 @media (min-width: 700px) {
-  #splash.up::before { transform: translateY(-29%) scale(0.65); }
-  body.auth-mode #view-auth { padding-top: 38vh; }
+  #splash.up::before { transform: translateY(-23%) scale(0.65); }
+  body.auth-mode #view-auth { padding-top: 44vh; }
   body.auth-mode #auth-form { max-width: 420px; }
 }
