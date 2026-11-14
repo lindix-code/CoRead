@@ -3090,3 +3090,19 @@ function showAuth() {
 setTimeout(() => {
   if (!$("splash").dataset.shown) showAuth();
 }, 8000); // Sicherheitsnetz, falls etwas hängt
+
+
+// Farbwelt (Petrol / Dunkel)
+function applyTheme(t) {
+  const dark = t === "dark";
+  if (dark) document.documentElement.setAttribute("data-theme", "dark");
+  else document.documentElement.removeAttribute("data-theme");
+  try { localStorage.setItem("coread-theme", dark ? "dark" : "petrol"); } catch (e) {}
+  document.querySelectorAll("[data-theme-pick]").forEach((b) => {
+    const on = b.dataset.themePick === (dark ? "dark" : "petrol");
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+document.querySelectorAll("[data-theme-pick]").forEach((b) => { b.onclick = () => applyTheme(b.dataset.themePick); });
+applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "petrol");
