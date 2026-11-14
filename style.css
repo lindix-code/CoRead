@@ -805,6 +805,6 @@ dialog.sheet[open] { display: flex; }
 
 /* Desktop: Logo kleiner und weiter oben, Formular mit mehr Abstand */
 @media (min-width: 700px) {
-  #splash.up::before { transform: translateY(-31%) scale(0.48); }
-  body.auth-mode #view-auth { padding-top: 42vh; }
+  #splash.up::before { transform: translateY(-29%) scale(0.65); }
+  body.auth-mode #view-auth { padding-top: 38vh; }
 }
