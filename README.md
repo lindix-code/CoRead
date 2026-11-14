@@ -47,7 +47,7 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 
 - [x] 10. Aktuelles Buch auf der Startseite größer/kleiner stellen können
 - [x] 11. Profil: Passwort ändern, E-Mail ändern, Support per WhatsApp, Impressum, Abmelden (Migration 014)
-  - [x] 11.1 Erscheinungsbild: Petrol, Dunkel, Flieder hell, Flieder dunkel (eigenes Startbild + Icon für Flieder)
+  - [x] 11.1 Erscheinungsbild: Petrol hell, Petrol dunkel, Flieder hell, Flieder dunkel (eigenes Startbild + Icon für Flieder)
   - [x] 11.2 Dunkelmodus ("Dunkel" in Einstellungen → Erscheinungsbild, Palette: Anthrazit, Creme, Gold, Mint)
 - [ ] 12. Neuer Reiter "BookClub" (Platzhalter in der Navigation ist da, Funktionen fehlen noch)
   - [ ] 12.1 Meilensteine, einzeln und gemeinsam anlegen

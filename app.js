@@ -3113,6 +3113,7 @@ function applyTheme(t) {
   const f = THEMES[t].flieder;
   const fav = $("fav-link"), touch = $("touch-link");
   if (fav) fav.setAttribute("href", f ? "assets/favicon-flieder-32.png?v=1" : "assets/favicon-32.png?v=2");
+  const li = $("logo-img"); if (li) li.setAttribute("src", f ? "assets/header-book-flieder.png?v=1" : "assets/header-book.png");
   if (touch) touch.setAttribute("href", f ? "assets/apple-touch-icon-flieder.png?v=1" : "assets/apple-touch-icon.png?v=2");
 }
 document.querySelectorAll("[data-theme-pick]").forEach((b) => { b.onclick = () => applyTheme(b.dataset.themePick); });
