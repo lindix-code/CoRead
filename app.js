@@ -1012,16 +1012,9 @@ function progressInfo(book) {
   return { pct: pct || 0, text: pct != null ? `Seite ${page} von ${book.pages} · ${pct} %` : `Seite ${page}` };
 }
 
-function heroCard(book) {
+// Fortschritt eintragen (Seite / Kapitel / Prozent): wird auf der Startseite und im BookClub genutzt
+function buildProgressForm(book, opts = {}) {
   const e = book.entry;
-  const info = progressInfo(book);
-  const compact = heroCompact;
-
-  const fill = el("div", { className: "bar-fill" });
-  fill.style.width = info.pct + "%";
-  const bar = el("div", { className: "bar" }, fill);
-  const progressText = el("div", { className: "progress-text" }, info.text);
-
   // Eingabe: Variante wählen (Seite / Kapitel / Prozent), Wert eintragen
   // "Kapitel" gibt es nur, wenn die Kapitelzahl des Buchs bekannt ist (im Buch eingetragen)
   const modes = PROGRESS_MODES.filter(([key]) => key !== "chapter" || e.chaptersTotal);
@@ -1082,15 +1075,36 @@ function heroCard(book) {
       try {
         localStorage.setItem("coread-progress-mode", mode);
       } catch (err) {}
-      homeBookId = book.id;
-      await reloadMyLibrary();
-      renderHome();
+      await opts.onSaved();
     } catch (err) {
       msg.textContent = "Speichern hat nicht geklappt: " + err.message;
       saveBtn.disabled = false;
     }
   };
-  if (compact) saveBtn.classList.add("small");
+  if (opts.compact) saveBtn.classList.add("small");
+
+  const form = el("div", { className: "progress-form" }, el("div", { className: "progress-input" }, modeSelect, input, unit, pagesTotalInput, saveBtn));
+  return { form, msg };
+}
+
+function heroCard(book) {
+  const e = book.entry;
+  const info = progressInfo(book);
+  const compact = heroCompact;
+
+  const fill = el("div", { className: "bar-fill" });
+  fill.style.width = info.pct + "%";
+  const bar = el("div", { className: "bar" }, fill);
+  const progressText = el("div", { className: "progress-text" }, info.text);
+
+  const { form, msg } = buildProgressForm(book, {
+    compact,
+    onSaved: async () => {
+      homeBookId = book.id;
+      await reloadMyLibrary();
+      renderHome();
+    },
+  });
 
   const toggle = el("button", { className: "hero-toggle", type: "button" });
   toggle.innerHTML = compact
@@ -1098,9 +1112,7 @@ function heroCard(book) {
     : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>';
   toggle.setAttribute("aria-label", compact ? "Aktuelles Buch groß anzeigen" : "Aktuelles Buch kompakt anzeigen");
   toggle.onclick = () => setHeroCompact(!heroCompact);
-  const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, "Ich lese gerade"), toggle);
-
-  const form = el("div", { className: "progress-form" }, el("div", { className: "progress-input" }, modeSelect, input, unit, pagesTotalInput, saveBtn));
+  const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, isBuddyBook(book.id) ? `Ich lese gerade · Buddy Read mit ${friendNick}` : "Ich lese gerade"), toggle);
 
   // Cover antippen öffnet die Details
   const cover = el("div", { className: "hero-cover tappable" }, coverElement(book));
@@ -1933,6 +1945,39 @@ async function loadBuddy() {
   }
 }
 
+
+function isBuddyBook(bookId) {
+  return buddy.reads.some((r) => r.status === "active" && r.book_id === bookId);
+}
+
+// Aktiver Buddy Read landet einmalig automatisch unter "Ich lese gerade"
+async function ensureBuddyInLibrary() {
+  const active = buddy.reads.find((r) => r.status === "active");
+  if (!active) return false;
+  const key = "coread-buddy-joined-" + active.id;
+  try {
+    if (localStorage.getItem(key)) return false;
+  } catch (e) {}
+  const mine = myLibrary.find((b) => b.id === active.book_id);
+  if (mine && (mine.entry.status === "reading" || mine.entry.status === "read")) {
+    try { localStorage.setItem(key, "1"); } catch (e) {}
+    return false;
+  }
+  const base = mine ? mine.entry : { owned: false, audiobook: false, finishedAt: null, progress: null, rating: null };
+  await saveEntry(mine || active.book, { ...base, status: "reading", startedAt: (mine && mine.entry.startedAt) || todayLocal() });
+  try { localStorage.setItem(key, "1"); } catch (e) {}
+  await reloadMyLibrary();
+  return true;
+}
+
+async function syncBuddy() {
+  try {
+    await loadBuddy();
+    if (await ensureBuddyInLibrary()) renderHome();
+    else renderHome();
+  } catch (e) {}
+}
+
 function buddyProgressRow(label, lib) {
   const row = el("div", { className: "buddy-prog" });
   const head = el("div", { className: "buddy-prog-head" }, el("strong", {}, label));
@@ -1968,6 +2013,9 @@ async function renderBuddy() {
     box.replaceChildren(el("h3", {}, "Buddy Read"), el("p", { className: "meta" }, "Konnte nicht geladen werden: " + err.message));
     return;
   }
+  try {
+    if (await ensureBuddyInLibrary()) renderHome();
+  } catch (e) {}
   const nick = friendNick || "deine Freundin";
   const active = buddy.reads.find((r) => r.status === "active");
   const proposals = buddy.reads.filter((r) => r.status === "proposed");
@@ -1988,6 +2036,16 @@ async function renderBuddy() {
       const add = el("button", { className: "btn", type: "button" }, "In meine Bibliothek");
       add.onclick = () => showDetail(b, false, { owned: false, status: "reading" });
       info.append(add);
+    } else if (mine.entry.status === "reading") {
+      const { form, msg } = buildProgressForm(mine, {
+        compact: true,
+        onSaved: async () => {
+          await reloadMyLibrary();
+          renderHome();
+          renderBuddy();
+        },
+      });
+      info.append(form, msg);
     }
     card.append(cover, info);
     box.append(card);
@@ -2279,6 +2337,7 @@ async function onSession(session) {
     await loadGoals();
     renderFriendPanel();
     refreshBell();
+    syncBuddy();
     showTab("home");
     scheduleImageOptimization();
   } catch (err) {
