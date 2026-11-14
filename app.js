@@ -2138,9 +2138,9 @@ async function fetchProfileBooks(userId) {
 }
 
 function slideCard(item, readOnly) {
-  const card = el("button", { className: "slide", type: "button" });
+  const card = el("button", { className: "pslide", type: "button" });
   card.append(coverElement(item), el("div", { className: "title" }, item.title), el("div", { className: "author" }, item.authors.join(", ")));
-  if (item.note) card.append(el("div", { className: "slide-note" }, item.note));
+  if (item.note) card.append(el("div", { className: "pslide-note" }, item.note));
   card.onclick = () => openProfileBook(item, readOnly);
   return card;
 }

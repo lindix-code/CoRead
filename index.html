@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -104,16 +104,16 @@
 
       <div class="shelf-section">
         <div class="shelf-head"><h3>Absolute Lieblingsbücher</h3><button class="shelf-add" type="button" data-kind="favorite" aria-label="Lieblingsbuch hinzufügen">+</button></div>
-        <div id="shelf-favorite" class="slides"></div>
+        <div id="shelf-favorite" class="pslides"></div>
       </div>
       <div class="shelf-section">
         <div class="shelf-head"><h3 id="rec-title">Buchempfehlung</h3><button class="shelf-add" type="button" data-kind="recommendation" aria-label="Buchempfehlung hinzufügen">+</button></div>
-        <div id="shelf-recommendation" class="slides"></div>
+        <div id="shelf-recommendation" class="pslides"></div>
       </div>
       <div class="shelf-section">
         <div class="shelf-head"><h3>Ausgeliehen</h3><button class="shelf-add" type="button" data-kind="borrowed" aria-label="Ausgeliehenes Buch hinzufügen">+</button></div>
         <p class="meta">Nur für dich sichtbar, als Erinnerung.</p>
-        <div id="shelf-borrowed" class="slides"></div>
+        <div id="shelf-borrowed" class="pslides"></div>
       </div>
     </section>
 
@@ -231,11 +231,11 @@
       <div id="friend-shelves" hidden>
         <div class="shelf-section">
           <div class="shelf-head"><h3 id="friend-fav-title">Lieblingsbücher</h3></div>
-          <div id="friend-shelf-favorite" class="slides"></div>
+          <div id="friend-shelf-favorite" class="pslides"></div>
         </div>
         <div class="shelf-section">
           <div class="shelf-head"><h3 id="friend-rec-title">Empfehlungen</h3></div>
-          <div id="friend-shelf-recommendation" class="slides"></div>
+          <div id="friend-shelf-recommendation" class="pslides"></div>
         </div>
       </div>
     </section>
@@ -336,6 +336,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>

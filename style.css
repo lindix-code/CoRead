@@ -715,12 +715,12 @@ header h1 { gap: 10px; }
 .shelf-head { display: flex; align-items: center; justify-content: space-between; }
 .shelf-head h3 { margin: 0; font-size: 1.05rem; }
 .shelf-add { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--primary); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; }
-.slides { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 10px 2px 12px; -webkit-overflow-scrolling: touch; }
-.slide { flex: 0 0 140px; scroll-snap-align: start; background: #fff; border: 0; border-radius: 12px; padding: 8px; text-align: left; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); display: flex; flex-direction: column; justify-content: flex-start; cursor: pointer; color: inherit; font: inherit; }
-.slide img, .slide .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; }
-.slide .title { font-weight: 600; font-size: 0.85rem; margin: 6px 0 2px; }
-.slide .author { font-size: 0.75rem; color: #6b7074; }
-.slide-note { font-size: 0.75rem; margin-top: 6px; color: #4f5459; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.pslides { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 10px 2px 12px; -webkit-overflow-scrolling: touch; }
+.pslide { flex: 0 0 140px; scroll-snap-align: start; background: #fff; border: 0; border-radius: 12px; padding: 8px; text-align: left; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); display: flex; flex-direction: column; justify-content: flex-start; cursor: pointer; color: inherit; font: inherit; }
+.pslide img, .pslide .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; }
+.pslide .title { font-weight: 600; font-size: 0.85rem; margin: 6px 0 2px; }
+.pslide .author { font-size: 0.75rem; color: #6b7074; }
+.pslide-note { font-size: 0.75rem; margin-top: 6px; color: #4f5459; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .shelf-empty { padding: 8px 0; }
 #pb-dialog textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; border: 1px solid #cdd2d0; border-radius: 8px; }
 #pb-dialog .pre { white-space: pre-wrap; }
