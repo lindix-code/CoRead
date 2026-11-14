@@ -1926,11 +1926,11 @@ async function seedBuddy() {
 }
 
 async function loadBuddy() {
-  let res = await sb.from("buddy_reads").select("id, book_id, status, proposed_by, created_at, books(*)").order("created_at");
+  let res = await sb.from("buddy_reads").select("id, book_id, status, proposed_by, created_at, rank, books(*)").order("created_at");
   if (res.error) throw res.error;
   if (!res.data.length) {
     await seedBuddy();
-    res = await sb.from("buddy_reads").select("id, book_id, status, proposed_by, created_at, books(*)").order("created_at");
+    res = await sb.from("buddy_reads").select("id, book_id, status, proposed_by, created_at, rank, books(*)").order("created_at");
     if (res.error) throw res.error;
   }
   buddy.reads = res.data.map((r) => ({ ...r, book: dbToBook(r.books) }));
@@ -2193,7 +2193,7 @@ async function renderBuddy() {
     const head = el(
       "div",
       { className: "bcard-head" },
-      el("div", { className: "bcard-titleline" }, el("div", { className: "bcard-title" }, b.title), el("div", { className: "bcard-day" }, `Buddy Read · Tag ${day}`)),
+      el("div", { className: "bcard-titleline" }, el("div", { className: "bcard-title" }, b.title), el("div", { className: "bcard-day" }, `Tag ${day}`)),
       el("div", { className: "meta" }, b.authors.join(", "))
     );
 
@@ -2255,68 +2255,89 @@ async function renderBuddy() {
     const others = buddy.comments.filter((c) => c.read_id === active.id && c.user_id !== me.id);
     const seen = buddySeenAt(active.id);
     const fresh = others.filter((c) => c.created_at > seen && (c.page == null || c.page <= myPage)).length;
-    const open = el("button", { className: "bcard-comments", type: "button" }, el("span", {}, "Kommentare"));
+    const open = el("button", { className: "bcard-comments", type: "button" });
+    open.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.6-.8L3 21l1.9-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>';
+    open.append(el("span", {}, "Kommentare"));
     if (fresh) open.append(el("span", { className: "buddy-new" }, `${fresh} neu`));
     open.onclick = () => showTab("buddy");
     actions.append(open);
     card.append(actions);
     box.append(card);
   } else {
-    box.append(el("h3", {}, "Buddy Read"), el("p", { className: "meta" }, "Gerade läuft kein Buddy Read. Schlagt unten eins vor."));
+    box.append(el("p", { className: "meta" }, "Gerade läuft kein Buddy Read. Schlagt unten eins vor."));
   }
 
-  // --- Vorschläge: eine Zeile pro Buch ---
-  const head = el("div", { className: "bprop-head" }, el("span", {}, "Zur Abstimmung"));
-  const addBtn = el("button", { className: "bprop-add", type: "button", "aria-label": "Buch vorschlagen" }, "+");
-  addBtn.setAttribute("aria-label", "Buch vorschlagen");
-  addBtn.onclick = () => {
-    addKind = "buddy";
-    $("add-title").textContent = "Buddy Read vorschlagen";
-    $("add-query").value = "";
-    $("add-status").textContent = "";
-    $("add-dialog").showModal();
-    showLibraryMatches();
-    $("add-query").focus();
-  };
-  head.append(addBtn);
+  // --- Rangliste: bis zu drei Vorschläge, per Drag and Drop auf Platz 1 bis 3 ziehen ---
+  const ranked = [...proposals].sort((x, y) => (x.rank ?? 999) - (y.rank ?? 999) || (x.created_at < y.created_at ? -1 : 1));
+  const head = el("div", { className: "bprop-head" }, el("span", {}, "Rangliste"));
+  if (ranked.length < 3) {
+    const addBtn = el("button", { className: "bprop-add", type: "button" }, "+");
+    addBtn.setAttribute("aria-label", "Buch vorschlagen");
+    addBtn.onclick = () => {
+      addKind = "buddy";
+      $("add-title").textContent = "Buddy Read vorschlagen";
+      $("add-query").value = "";
+      $("add-status").textContent = "";
+      $("add-dialog").showModal();
+      showLibraryMatches();
+      $("add-query").focus();
+    };
+    head.append(addBtn);
+  }
   box.append(head);
-  if (!proposals.length) box.append(el("p", { className: "meta" }, "Keine offenen Vorschläge."));
-  for (const p of proposals) {
+  if (!ranked.length) box.append(el("p", { className: "meta" }, "Noch keine Vorschläge. Mit + schlägst du ein Buch vor (bis zu drei)."));
+  const list = el("div", { className: "bprop-list" });
+  const thumb = (up) =>
+    up
+      ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11v9H4v-9h3zM7 11l4-8a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.2 7a2 2 0 0 1-2 1.7H7"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 13V4h3v9h-3zM17 13l-4 8a2 2 0 0 1-2-2v-4H5.5a2 2 0 0 1-2-2.3l1.2-7a2 2 0 0 1 2-1.7H17"/></svg>';
+  ranked.forEach((p, i) => {
     const votes = buddy.votes.filter((v) => v.read_id === p.id);
     const myVote = votes.find((v) => v.user_id === me.id);
     const theirVote = votes.find((v) => v.user_id !== me.id);
     const fmt = (v) => (v ? (v.vote ? "dafür" : "dagegen") : "offen");
+    // Gleiche Taste nochmal: Bewertung zurücknehmen
     const vote = async (value) => {
-      const { error } = await sb.from("buddy_votes").upsert({ read_id: p.id, user_id: me.id, vote: value }, { onConflict: "read_id,user_id" });
+      const { error } = myVote && myVote.vote === value
+        ? await sb.from("buddy_votes").delete().eq("read_id", p.id).eq("user_id", me.id)
+        : await sb.from("buddy_votes").upsert({ read_id: p.id, user_id: me.id, vote: value }, { onConflict: "read_id,user_id" });
       if (error) return alert("Das hat nicht geklappt: " + error.message);
       renderBuddy();
     };
+    const grip = el("div", { className: "bprop-grip" });
+    grip.setAttribute("aria-label", "Zum Verschieben ziehen");
+    grip.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+    const place = el("div", { className: "bprop-place" }, String(i + 1));
     const cv = el("div", { className: "bprop-cover" });
     cv.append(buddyCover(p.book));
     const txt = el(
       "div",
       { className: "bprop-text" },
-      el("div", { className: "bprop-title" }, p.book.title, el("span", { className: "meta" }, " · " + p.book.authors.join(", "))),
+      el("div", { className: "bprop-title" }, p.book.title),
+      el("div", { className: "meta" }, p.book.authors.join(", ")),
       el("div", { className: "meta" }, `Du: ${fmt(myVote)} · ${nick}: ${fmt(theirVote)}`)
     );
     const acts = el("div", { className: "bprop-actions" });
-    const yes = el("button", { className: "bprop-btn" + (myVote && myVote.vote ? " on" : ""), type: "button" }, "Dafür");
-    const no = el("button", { className: "bprop-btn no" + (myVote && !myVote.vote ? " on" : ""), type: "button", title: "Dagegen" }, "✕");
-    no.setAttribute("aria-label", "Dagegen");
-    yes.onclick = () => vote(true);
-    no.onclick = () => vote(false);
-    acts.append(yes, no);
+    const up = el("button", { className: "bprop-btn" + (myVote && myVote.vote ? " on" : ""), type: "button", title: "Daumen hoch" });
+    const down = el("button", { className: "bprop-btn no" + (myVote && !myVote.vote ? " on" : ""), type: "button", title: "Daumen runter" });
+    up.innerHTML = thumb(true);
+    down.innerHTML = thumb(false);
+    up.setAttribute("aria-label", "Daumen hoch");
+    down.setAttribute("aria-label", "Daumen runter");
+    up.onclick = () => vote(true);
+    down.onclick = () => vote(false);
+    acts.append(up, down);
     if (myVote && myVote.vote && theirVote && theirVote.vote) {
-      const start = el("button", { className: "bprop-btn on", type: "button" }, "Starten");
+      const start = el("button", { className: "bprop-start", type: "button" }, "Starten");
       start.onclick = async () => {
         if (active) await sb.from("buddy_reads").update({ status: "done" }).eq("id", active.id);
-        await sb.from("buddy_reads").update({ status: "active" }).eq("id", p.id);
+        await sb.from("buddy_reads").update({ status: "active", rank: null }).eq("id", p.id);
         renderBuddy();
       };
-      acts.append(start);
+      txt.append(start);
     }
     if (p.proposed_by === me.id) {
-      const withdraw = el("button", { className: "bprop-x", type: "button", title: "Vorschlag zurückziehen" }, "Zurückziehen");
+      const withdraw = el("button", { className: "bprop-x", type: "button" }, "Zurückziehen");
       withdraw.onclick = async () => {
         if (!confirm("Vorschlag zurückziehen?")) return;
         await sb.from("buddy_reads").delete().eq("id", p.id);
@@ -2324,7 +2345,54 @@ async function renderBuddy() {
       };
       txt.append(withdraw);
     }
-    box.append(el("div", { className: "bprop" }, cv, txt, acts));
+    const row = el("div", { className: "bprop" }, grip, place, cv, txt, acts);
+    row.dataset.id = p.id;
+    list.append(row);
+  });
+  box.append(list);
+  enableRankDrag(list);
+}
+
+// Rangliste per Finger/Maus verschieben (Ziehgriff links); speichert die neue Reihenfolge
+function enableRankDrag(list) {
+  for (const grip of list.querySelectorAll(".bprop-grip")) {
+    grip.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const row = grip.closest(".bprop");
+      grip.setPointerCapture(e.pointerId);
+      row.classList.add("dragging");
+      const renumber = () => [...list.children].forEach((r, i) => (r.querySelector(".bprop-place").textContent = String(i + 1)));
+      const move = (ev) => {
+        for (const other of list.children) {
+          if (other === row) continue;
+          const r = other.getBoundingClientRect();
+          const mid = r.top + r.height / 2;
+          const rowAfter = other.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING;
+          if (ev.clientY < mid && rowAfter) {
+            list.insertBefore(row, other);
+            renumber();
+            break;
+          }
+          if (ev.clientY > mid && !rowAfter) {
+            other.after(row);
+            renumber();
+            break;
+          }
+        }
+      };
+      const done = async () => {
+        grip.removeEventListener("pointermove", move);
+        grip.removeEventListener("pointerup", done);
+        grip.removeEventListener("pointercancel", done);
+        row.classList.remove("dragging");
+        const ids = [...list.children].map((r) => r.dataset.id);
+        await Promise.all(ids.map((id, i) => sb.from("buddy_reads").update({ rank: i + 1 }).eq("id", id)));
+        renderBuddy();
+      };
+      grip.addEventListener("pointermove", move);
+      grip.addEventListener("pointerup", done);
+      grip.addEventListener("pointercancel", done);
+    });
   }
 }
 
@@ -2797,7 +2865,7 @@ async function addProfileBook(kind, book) {
     const { error: bookError } = await sb.from("books").upsert(bookToDb(book), { onConflict: "id", ignoreDuplicates: true });
     if (bookError) throw bookError;
     if (kind === "buddy") {
-      const { error } = await sb.from("buddy_reads").upsert({ book_id: book.id, status: "proposed", proposed_by: me.id }, { onConflict: "book_id", ignoreDuplicates: true });
+      const { error } = await sb.from("buddy_reads").upsert({ book_id: book.id, status: "proposed", proposed_by: me.id, rank: buddy.reads.filter((r) => r.status === "proposed").length + 1 }, { onConflict: "book_id", ignoreDuplicates: true });
       if (error) throw error;
       $("add-dialog").close();
       addKind = null;
