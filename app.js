@@ -1927,7 +1927,9 @@ async function onSession(session) {
     me = data;
     await loadFriend();
     // Reiter der Freundin: Zaza sieht "Lindi", alle anderen sehen "Zaza"
-    $("tab-friend").textContent = /zaza/i.test(me.display_name || "") ? "Lindi" : "Zaza";
+    const friendName = /zaza/i.test(me.display_name || "") ? "Lindi" : "Zaza";
+    $("tab-friend").setAttribute("aria-label", friendName);
+    $("tab-friend").title = friendName;
     $("tab-profile").hidden = false;
     await reloadMyLibrary();
     await loadGoals();

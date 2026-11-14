@@ -651,3 +651,25 @@ header { flex-wrap: wrap; gap: 4px; }
   transition: opacity 0.45s ease;
 }
 #splash.leave { opacity: 0; pointer-events: none; }
+
+/* Kompakte Navigation: schmale Kopfzeile, Symbolleiste unten */
+header { flex-wrap: nowrap; padding: 8px 14px; min-height: 52px; box-sizing: border-box; align-items: center; }
+header h1 { display: flex; align-items: center; gap: 8px; margin: 0; font-family: "Cinzel Decorative", Georgia, serif; font-weight: 700; font-size: 1.3rem; letter-spacing: 1px; color: #bbd8c8; }
+header h1 .logo-book { color: #e4bc7f; flex-shrink: 0; }
+.head-actions { display: flex; align-items: center; gap: 6px; }
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: space-around;
+  background: #345457;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  box-shadow: 0 -1px 6px rgba(0, 0, 0, 0.15);
+}
+.bottom-nav .tab { border: 0; border-radius: 18px; padding: 9px 16px; line-height: 0; color: #bbd8c8; }
+.bottom-nav .tab.active { color: #e4bc7f; background: rgba(228, 188, 127, 0.18); }
+main { padding-bottom: 96px; }
+#logout { margin-top: 12px; font-size: 1rem; color: #2d2e34; }

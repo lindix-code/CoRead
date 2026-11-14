@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.webmanifest?v=2">
   <meta name="theme-color" content="#345457">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,23 +20,25 @@
 <body>
   <div id="splash" aria-hidden="true"></div>
   <header>
-    <h1>CoRead</h1>
-    <nav id="nav" hidden>
-      <button id="tab-home" class="tab active">Home</button>
-      <button id="tab-library" class="tab">Bibliothek</button>
-      <button id="tab-feed" class="tab">Pinnwand</button>
-      <button id="tab-bookclub" class="tab">BookClub</button>
-      <button id="tab-friend" class="tab">Zaza</button>
-    </nav>
-    <button id="tab-profile" class="tab bell" type="button" aria-label="Profil" hidden>
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1.5c0 .8.7 1.5 1.5 1.5h13c.8 0 1.5-.7 1.5-1.5V19c0-2.8-3.6-5-8-5z"/></svg>
-    </button>
-    <button id="bell" class="tab bell" type="button" aria-label="Neue Beiträge auf der Pinnwand" hidden>
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5c0-3.1-1.64-5.64-4.5-6.32V4a2.5 2.5 0 0 0-5 0v.68C6.63 5.36 5 7.9 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
-      <span id="bell-badge" class="bell-badge" hidden>0</span>
-    </button>
-    <button id="logout" class="tab" hidden>Abmelden</button>
+    <h1><svg class="logo-book" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6v13"/><path d="M12 6v13"/><path d="M21 6v13"/></svg><span>BookClub</span></h1>
+    <div class="head-actions">
+      <button id="bell" class="tab bell" type="button" aria-label="Neue Beiträge auf der Pinnwand" hidden>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5c0-3.1-1.64-5.64-4.5-6.32V4a2.5 2.5 0 0 0-5 0v.68C6.63 5.36 5 7.9 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
+        <span id="bell-badge" class="bell-badge" hidden>0</span>
+      </button>
+      <button id="tab-profile" class="tab bell" type="button" aria-label="Profil" hidden>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1.5c0 .8.7 1.5 1.5 1.5h13c.8 0 1.5-.7 1.5-1.5V19c0-2.8-3.6-5-8-5z"/></svg>
+      </button>
+    </div>
   </header>
+
+  <nav id="nav" class="bottom-nav" hidden>
+    <button id="tab-home" class="tab active" type="button" aria-label="Home" title="Home"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg></button>
+    <button id="tab-library" class="tab" type="button" aria-label="Bibliothek" title="Bibliothek"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="4" height="16" rx="1"/><rect x="9" y="4" width="4" height="16" rx="1"/><path d="M5 8h4"/><path d="M9 16h4"/><path d="M13.8 4.6l2.2 -.5a1 1 0 0 1 1.3 .7l3.7 13.4a1 1 0 0 1 -.6 1.2l-2.2 .5a1 1 0 0 1 -1.3 -.7l-3.7 -13.4a1 1 0 0 1 .6 -1.2z"/><path d="M14 9l4 -1"/><path d="M16 16l3.9 -1"/></svg></button>
+    <button id="tab-feed" class="tab" type="button" aria-label="Pinnwand" title="Pinnwand"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h4"/></svg></button>
+    <button id="tab-bookclub" class="tab" type="button" aria-label="BookClub" title="BookClub"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 12.6l-7.5 7.4l-7.5 -7.4a5 5 0 1 1 7.5 -6.6a5 5 0 1 1 7.5 6.6"/></svg></button>
+    <button id="tab-friend" class="tab" type="button" aria-label="Zaza" title="Zaza"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.9"/></svg></button>
+  </nav>
 
   <main>
     <!-- Login / Registrierung -->
@@ -95,6 +100,7 @@
     <section id="view-profile" hidden>
       <h2>Profil</h2>
       <p class="meta">Hier entstehen bald Profil, Passwort und Farben.</p>
+      <button id="logout" class="btn secondary" type="button" hidden>Abmelden</button>
     </section>
 
     <!-- Bibliothek -->
@@ -236,6 +242,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
