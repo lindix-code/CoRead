@@ -1,0 +1,14 @@
+{
+  "name": "CoRead – BookClub Lindi & Zaza",
+  "short_name": "CoRead",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#345457",
+  "theme_color": "#6b3f2a",
+  "lang": "de",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
