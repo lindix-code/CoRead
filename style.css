@@ -867,3 +867,10 @@ dialog.sheet[open] { display: flex; }
 .head-actions { gap: 0; }
 header .bell { padding: 6px 7px; }
 header { padding-right: 8px; }
+
+/* Tracker unter Next Read */
+.btiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px; }
+.btile { background: #fff; border-radius: 12px; padding: 12px 14px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.btile-label { font-size: 0.8rem; color: #4f5459; }
+.btile-number { font-size: 1.9rem; font-weight: 700; color: var(--primary); line-height: 1.2; }
+.btile-sub { font-size: 0.75rem; color: #6b7074; }

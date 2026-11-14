@@ -1890,6 +1890,7 @@ $("connect-form").onsubmit = async (event) => {
 // ---------- BookClub: Buddy Read ----------
 
 // Startbestand (wird einmalig angelegt, wenn noch kein Buddy Read existiert): [Suche, Status, Autorenname]
+const TRACKER_YEAR = "2027";
 const BUDDY_SEED = [
   ["Iron Flame Rebecca Yarros", "active", "yarros"],
   ["Emma Jane Austen", "proposed", "austen"],
@@ -2351,6 +2352,25 @@ async function renderBuddy() {
   });
   box.append(list);
   enableRankDrag(list);
+
+  // --- Tracker 2027: gelesene Bücher und Seiten, beide Konten zusammen ---
+  const readIn = (lib) => (lib || []).filter((b) => b.entry && b.entry.status === "read" && b.entry.finishedAt && b.entry.finishedAt.startsWith(TRACKER_YEAR));
+  const mineRead = readIn(myLibrary);
+  const theirRead = readIn(buddy.friendLib);
+  const pages = (list) => list.reduce((sum, b) => sum + (b.pages || 0), 0);
+  const fmtN = (n) => n.toLocaleString("de-DE");
+  const tile = (label, mineVal, theirVal) =>
+    el(
+      "div",
+      { className: "btile" },
+      el("div", { className: "btile-label" }, label),
+      el("div", { className: "btile-number" }, fmtN(mineVal + theirVal)),
+      el("div", { className: "btile-sub" }, `Du ${fmtN(mineVal)} · ${nick} ${fmtN(theirVal)}`)
+    );
+  box.append(
+    el("div", { className: "bprop-head" }, el("span", {}, `Unser ${TRACKER_YEAR}`)),
+    el("div", { className: "btiles" }, tile("Gelesene Bücher", mineRead.length, theirRead.length), tile("Gelesene Seiten", pages(mineRead), pages(theirRead)))
+  );
 }
 
 // Rangliste per Finger/Maus verschieben (Ziehgriff links); speichert die neue Reihenfolge
@@ -2628,7 +2648,14 @@ async function refreshBell() {
   // Neue Lieblingsbücher und abgehakte Klassiker der anderen Person (ab Migration 016)
   bellEvents = 0;
   if (friend && me.events_seen_at) {
-    bellEvents = (await countEvents("profile_books", "favorite")) + (await countEvents("classic_reads"));
+    bellEvents = (await countEvents("profile_books", "favorite")) + (await countEvents("profile_books", "recommendation")) + (await countEvents("classic_reads"));
+    const { count: proposalCount, error: proposalError } = await sb
+      .from("buddy_reads")
+      .select("id", { count: "exact", head: true })
+      .eq("proposed_by", friend.id)
+      .eq("status", "proposed")
+      .gt("created_at", me.events_seen_at);
+    if (!proposalError) bellEvents += proposalCount || 0;
   }
   setBell(bellPosts + bellEvents);
 }
@@ -2651,11 +2678,15 @@ $("bell").onclick = async () => {
   }
   let newest = null;
   if (friend && me.events_seen_at) {
-    const [fav, cls] = await Promise.all([
+    const [fav, cls, rec, prop] = await Promise.all([
       sb.from("profile_books").select("created_at, books(title)").eq("user_id", friend.id).eq("kind", "favorite").order("created_at", { ascending: false }).limit(8),
       sb.from("classic_reads").select("created_at, classic_id").eq("user_id", friend.id).order("created_at", { ascending: false }).limit(8),
+      sb.from("profile_books").select("created_at, books(title)").eq("user_id", friend.id).eq("kind", "recommendation").order("created_at", { ascending: false }).limit(8),
+      sb.from("buddy_reads").select("created_at, books(title)").eq("proposed_by", friend.id).eq("status", "proposed").order("created_at", { ascending: false }).limit(8),
     ]);
     const events = [];
+    for (const r of rec.data || []) events.push({ at: r.created_at, text: `${nick} hat dir eine Buchempfehlung eingetragen: ${r.books ? r.books.title : ""}`, go: "friend" });
+    for (const r of prop.data || []) events.push({ at: r.created_at, text: `${nick} hat einen Next-Read-Vorschlag eingetragen: ${r.books ? r.books.title : ""}`, go: "bookclub" });
     for (const r of fav.data || []) events.push({ at: r.created_at, text: `${nick} hat ein neues Lieblingsbuch markiert: ${r.books ? r.books.title : ""}`, go: "friend" });
     for (const r of cls.data || []) {
       const c = CLASSICS.find((x) => x[0] === r.classic_id);

@@ -55,7 +55,7 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
   - [x] 12.3 Buddy Read (Migration 017): Vorschlag machen, ein Buch parallel gemeinsam zu lesen, inkl. Kommentar-Funktion
   - [x] 12.4 Gemeinsame Klassiker: Kachel + Block mit Buchdeckeln, die bunt werden, sobald eine von euch das Buch als gelesen markiert (Migration 013)
 - [ ] 13. Zitate hinterlegen oder markieren
-- [ ] 14. Seitenanzahl zusammenzählen (einzeln und gemeinsam)
+- [x] 14. Seitenanzahl zusammenzählen (einzeln und gemeinsam): Tracker "Unser 2027" unter Next Read
 - [x] 15. Liste mit ausgeliehenen Büchern als Erinnerung (im Profil, nur für dich sichtbar; Migration 015)
 - [x] 16. Liste mit absoluten Lieblingsbüchern aller Zeiten
 - [x] 17. Klare Buchempfehlung für die andere Person
@@ -71,7 +71,7 @@ Die Zahl am Glöckchen zählt Neuigkeiten der anderen Person seit deinem letzten
 - [x] Neuer Beitrag auf der Pinnwand (zählt, bis die Pinnwand geöffnet wird)
 - [x] Neues Lieblingsbuch markiert (Migration 016)
 - [x] Klassiker abgehakt (Migration 016)
-- [ ] Neue Buchempfehlung der anderen Person
-- [ ] Buddy-Read-Vorschlag und Kommentare dazu (kommt mit 12.3)
+- [x] Neue Buchempfehlung der anderen Person
+- [x] Next-Read-Vorschlag der anderen Person (Kommentare dazu noch offen)
 - [ ] Gemeinsamer Meilenstein erreicht (kommt mit 12.1)
 - [ ] Später: dieselben Regeln als Push-Nachricht (Punkt 9)
