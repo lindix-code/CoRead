@@ -658,7 +658,7 @@ header { flex-wrap: wrap; gap: 4px; }
   position: absolute;
   inset: 0;
   background: url("assets/splash.jpg") center / contain no-repeat;
-  transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 1.6s cubic-bezier(0.45, 0, 0.2, 1);
 }
 #splash.up::before { transform: translateY(-27%) scale(0.55); }
 #splash.instant::before { transition: none; }
@@ -669,8 +669,10 @@ header { flex-wrap: wrap; gap: 4px; }
 body.auth-mode { background: var(--primary); }
 body.auth-mode header { display: none; }
 body.auth-mode main { position: relative; z-index: 10000; }
-body.auth-mode #view-auth { padding-top: 34vh; opacity: 0; transition: opacity 0.6s ease 0.95s; }
-body.auth-up #view-auth { opacity: 1; }
+#view-auth { opacity: 0; }
+body.auth-mode #view-auth { padding-top: 34vh; }
+body.auth-up #view-auth { opacity: 1; transition: opacity 0.7s ease 1.6s; }
+body.auth-up.auth-instant #view-auth { transition-delay: 0s; }
 body.auth-mode #view-auth h2 { color: #f6f0e8; text-align: center; margin: 0 0 4px; }
 body.auth-mode #auth-status { color: var(--mint); text-align: center; }
 body.auth-mode #btn-login { background: var(--accent); color: #2d2e34; }

@@ -2874,7 +2874,7 @@ function hideSplash() {
   if (!splash || splash.dataset.leaving) return;
   splash.dataset.leaving = "1";
   splash.dataset.shown = "1";
-  document.body.classList.remove("auth-mode", "auth-up");
+  document.body.classList.remove("auth-mode", "auth-up", "auth-instant");
   const wait = Math.max(0, 1300 - performance.now());
   setTimeout(() => {
     splash.classList.add("leave");
@@ -2890,16 +2890,20 @@ function showAuth() {
   const first = !splash.dataset.shown;
   splash.dataset.shown = "1";
   delete splash.dataset.leaving;
-  document.body.classList.add("auth-mode");
   splash.hidden = false;
   splash.classList.remove("leave");
   if (splash.classList.contains("up")) {
-    document.body.classList.add("auth-up");
+    document.body.classList.add("auth-mode", "auth-up", "auth-instant");
     return;
   }
-  const wait = first ? Math.max(0, 1300 - performance.now()) : 0;
-  if (!first) splash.classList.add("instant");
+  // Erst das Logo als Vollbild, dann wandert es nach oben, danach erscheint das Formular
+  const wait = first ? Math.max(0, 1800 - performance.now()) : 0;
+  if (!first) {
+    splash.classList.add("instant");
+    document.body.classList.add("auth-instant");
+  }
   setTimeout(() => {
+    document.body.classList.add("auth-mode");
     splash.classList.add("up");
     document.body.classList.add("auth-up");
   }, wait);
