@@ -1982,7 +1982,9 @@ function buddyProgressRow(label, lib) {
   const row = el("div", { className: "buddy-prog" });
   const head = el("div", { className: "buddy-prog-head" }, el("strong", {}, label));
   if (!lib || !lib.entry || (!lib.entry.status && lib.entry.progress == null)) {
-    row.append(head, el("div", { className: "meta" }, "Noch nicht begonnen"));
+    const empty = el("div", { className: "bar-fill" });
+    empty.style.width = "0%";
+    row.append(head, el("div", { className: "bar" }, empty), el("div", { className: "meta" }, "0 % · noch nicht begonnen"));
     return row;
   }
   if (lib.entry.status === "read") {
