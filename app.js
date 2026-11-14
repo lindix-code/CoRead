@@ -2030,6 +2030,7 @@ async function onSession(session) {
     classicReads = [];
     $("bell").hidden = true;
     $("tab-profile").hidden = true;
+    $("open-settings").hidden = true;
     for (const id of ["view-home", "view-library", "view-feed", "view-bookclub", "view-profile", "view-friend"]) $(id).hidden = true;
     return;
   }
@@ -2045,6 +2046,7 @@ async function onSession(session) {
     $("tab-friend").setAttribute("aria-label", friendName);
     $("tab-friend").title = friendName;
     $("tab-profile").hidden = false;
+    $("open-settings").hidden = false;
     await reloadMyLibrary();
     await loadGoals();
     renderFriendPanel();
