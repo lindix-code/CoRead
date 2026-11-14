@@ -1872,6 +1872,234 @@ $("connect-form").onsubmit = async (event) => {
   renderFriendPanel();
 };
 
+
+// ---------- BookClub: Buddy Read ----------
+
+// Startbestand (wird einmalig angelegt, wenn noch kein Buddy Read existiert): [Suche, Status, Autorenname]
+const BUDDY_SEED = [
+  ["Iron Flame Rebecca Yarros", "active", "yarros"],
+  ["Emma Jane Austen", "proposed", "austen"],
+];
+
+let buddy = { reads: [], votes: [], comments: [], friendLib: [] };
+let buddySeeding = false;
+
+function currentPage(b) {
+  if (!b || !b.entry) return 0;
+  const e = b.entry;
+  if (e.status === "read") return Infinity;
+  if (e.progressMode === "percent" && b.pages) return Math.round(((e.progressPercent || 0) / 100) * b.pages);
+  if (e.progressMode === "chapter" && e.chaptersTotal && b.pages) return Math.round(((e.progressChapter || 0) / e.chaptersTotal) * b.pages);
+  return e.progress || 0;
+}
+
+async function seedBuddy() {
+  if (buddySeeding) return;
+  buddySeeding = true;
+  try {
+    for (const [query, status, authorPart] of BUDDY_SEED) {
+      const found = await searchBooks(query, "de");
+      const book = found.find((b) => b.authors.join(" ").toLowerCase().includes(authorPart) && b.cover) || found.find((b) => b.authors.join(" ").toLowerCase().includes(authorPart)) || found[0];
+      if (!book) continue;
+      const { error: be } = await sb.from("books").upsert(bookToDb(book), { onConflict: "id", ignoreDuplicates: true });
+      if (be) throw be;
+      const { error } = await sb.from("buddy_reads").upsert({ book_id: book.id, status, proposed_by: me.id }, { onConflict: "book_id", ignoreDuplicates: true });
+      if (error) throw error;
+    }
+  } finally {
+    buddySeeding = false;
+  }
+}
+
+async function loadBuddy() {
+  let res = await sb.from("buddy_reads").select("id, book_id, status, proposed_by, created_at, books(*)").order("created_at");
+  if (res.error) throw res.error;
+  if (!res.data.length) {
+    await seedBuddy();
+    res = await sb.from("buddy_reads").select("id, book_id, status, proposed_by, created_at, books(*)").order("created_at");
+    if (res.error) throw res.error;
+  }
+  buddy.reads = res.data.map((r) => ({ ...r, book: dbToBook(r.books) }));
+  const [votes, comments] = await Promise.all([
+    sb.from("buddy_votes").select("read_id, user_id, vote"),
+    sb.from("buddy_comments").select("id, read_id, user_id, body, page, created_at").order("created_at", { ascending: false }),
+  ]);
+  buddy.votes = votes.data || [];
+  buddy.comments = comments.data || [];
+  try {
+    buddy.friendLib = friend ? await fetchLibrary(friend.id) : [];
+  } catch (e) {
+    buddy.friendLib = [];
+  }
+}
+
+function buddyProgressRow(label, lib) {
+  const row = el("div", { className: "buddy-prog" });
+  const head = el("div", { className: "buddy-prog-head" }, el("strong", {}, label));
+  if (!lib || !lib.entry || (!lib.entry.status && lib.entry.progress == null)) {
+    row.append(head, el("div", { className: "meta" }, "Noch nicht begonnen"));
+    return row;
+  }
+  if (lib.entry.status === "read") {
+    const full = el("div", { className: "bar-fill" });
+    full.style.width = "100%";
+    row.append(head, el("div", { className: "bar" }, full), el("div", { className: "meta" }, "Fertig gelesen"));
+    return row;
+  }
+  const info = progressInfo(lib);
+  const fill = el("div", { className: "bar-fill" });
+  fill.style.width = info.pct + "%";
+  row.append(head, el("div", { className: "bar" }, fill), el("div", { className: "meta" }, info.text));
+  return row;
+}
+
+function buddyCover(book) {
+  const own = myLibrary.find((b) => b.id === book.id);
+  return coverElement(own ? { ...book, cover: own.cover } : book);
+}
+
+async function renderBuddy() {
+  const box = $("buddy");
+  let first = !buddy.reads.length;
+  if (first) box.replaceChildren(el("p", { className: "meta" }, "Lade Buddy Read …"));
+  try {
+    await loadBuddy();
+  } catch (err) {
+    box.replaceChildren(el("h3", {}, "Buddy Read"), el("p", { className: "meta" }, "Konnte nicht geladen werden: " + err.message));
+    return;
+  }
+  const nick = friendNick || "deine Freundin";
+  const active = buddy.reads.find((r) => r.status === "active");
+  const proposals = buddy.reads.filter((r) => r.status === "proposed");
+  box.replaceChildren(el("h3", {}, "Buddy Read"));
+
+  // --- aktuelles Buch ---
+  if (active) {
+    const b = active.book;
+    const mine = myLibrary.find((x) => x.id === b.id);
+    const theirs = buddy.friendLib.find((x) => x.id === b.id);
+    const card = el("div", { className: "buddy-card" });
+    const cover = el("div", { className: "buddy-cover" });
+    cover.append(buddyCover(b));
+    cover.onclick = () => showDetail(mine || b, false);
+    const info = el("div", { className: "buddy-info" }, el("div", { className: "buddy-title" }, b.title), el("div", { className: "meta" }, b.authors.join(", ")));
+    info.append(buddyProgressRow("Du", mine), buddyProgressRow(nick, theirs));
+    if (!mine) {
+      const add = el("button", { className: "btn", type: "button" }, "In meine Bibliothek");
+      add.onclick = () => showDetail(b, false, { owned: false, status: "reading" });
+      info.append(add);
+    }
+    card.append(cover, info);
+    box.append(card);
+
+    // --- Kommentare mit Spoilerschutz ---
+    const myPage = currentPage(mine);
+    const comments = buddy.comments.filter((c) => c.read_id === active.id);
+    const form = el("form", { className: "buddy-form" });
+    const area = el("textarea", { rows: 3, maxLength: 1000, placeholder: "Dein Kommentar zum Buch …", required: true });
+    const pageIn = el("input", { type: "number", min: 0, inputMode: "numeric", placeholder: "Seite" });
+    pageIn.value = Number.isFinite(myPage) && myPage > 0 ? String(myPage) : "";
+    const send = el("button", { className: "btn", type: "submit" }, "Senden");
+    form.append(area, el("div", { className: "buddy-form-row" }, el("label", { className: "field" }, "Bei Seite (Spoilerschutz)", pageIn), send));
+    form.onsubmit = async (event) => {
+      event.preventDefault();
+      send.disabled = true;
+      const { error } = await sb.from("buddy_comments").insert({ read_id: active.id, body: area.value.trim(), page: pageIn.value === "" ? null : Math.max(0, Math.round(Number(pageIn.value))) });
+      if (error) {
+        send.disabled = false;
+        alert("Das hat nicht geklappt: " + error.message);
+        return;
+      }
+      renderBuddy();
+    };
+    const list = el("div", { className: "buddy-comments" });
+    for (const c of comments) {
+      const own = c.user_id === me.id;
+      const hidden = !own && c.page != null && c.page > myPage;
+      const who = own ? "Du" : nick;
+      const when = new Date(c.created_at).toLocaleDateString("de-DE");
+      const item = el("div", { className: "buddy-comment" + (own ? " own" : "") });
+      item.append(el("div", { className: "meta" }, `${who} · ${when}${c.page != null ? " · Seite " + c.page : ""}`));
+      if (hidden) {
+        item.append(el("div", { className: "buddy-locked" }, `Kommentar zu Seite ${c.page}. Er wird sichtbar, sobald du dort angekommen bist.`));
+      } else {
+        item.append(el("div", { className: "pre" }, c.body));
+        if (own) {
+          const del = el("button", { className: "link-btn", type: "button" }, "Löschen");
+          del.onclick = async () => {
+            if (!confirm("Kommentar löschen?")) return;
+            await sb.from("buddy_comments").delete().eq("id", c.id);
+            renderBuddy();
+          };
+          item.append(del);
+        }
+      }
+      list.append(item);
+    }
+    box.append(el("h4", {}, "Kommentare"), form, comments.length ? list : el("p", { className: "meta" }, "Noch keine Kommentare."));
+  } else {
+    box.append(el("p", { className: "meta" }, "Gerade läuft kein Buddy Read. Schlagt unten eins vor."));
+  }
+
+  // --- Vorschläge zur Abstimmung ---
+  const head = el("div", { className: "shelf-head" }, el("h4", {}, "Zur Abstimmung"));
+  const addBtn = el("button", { className: "shelf-add", type: "button", "aria-label": "Buch vorschlagen" }, "+");
+  addBtn.onclick = () => {
+    addKind = "buddy";
+    $("add-title").textContent = "Buddy Read vorschlagen";
+    $("add-query").value = "";
+    $("add-status").textContent = "";
+    $("add-dialog").showModal();
+    showLibraryMatches();
+    $("add-query").focus();
+  };
+  head.append(addBtn);
+  box.append(head);
+  if (!proposals.length) box.append(el("p", { className: "meta" }, "Keine offenen Vorschläge."));
+  for (const p of proposals) {
+    const votes = buddy.votes.filter((v) => v.read_id === p.id);
+    const myVote = votes.find((v) => v.user_id === me.id);
+    const theirVote = votes.find((v) => v.user_id !== me.id);
+    const fmt = (v) => (v ? (v.vote ? "dafür" : "dagegen") : "offen");
+    const row = el("div", { className: "buddy-proposal" });
+    const cv = el("div", { className: "buddy-cover small" });
+    cv.append(buddyCover(p.book));
+    const txt = el("div", { className: "buddy-info" }, el("div", { className: "buddy-title" }, p.book.title), el("div", { className: "meta" }, p.book.authors.join(", ")), el("div", { className: "meta" }, `Du: ${fmt(myVote)} · ${nick}: ${fmt(theirVote)}`));
+    const actions = el("div", { className: "buddy-actions" });
+    const vote = async (value) => {
+      const { error } = await sb.from("buddy_votes").upsert({ read_id: p.id, user_id: me.id, vote: value }, { onConflict: "read_id,user_id" });
+      if (error) return alert("Das hat nicht geklappt: " + error.message);
+      renderBuddy();
+    };
+    const yes = el("button", { className: "btn" + (myVote && myVote.vote ? "" : " secondary"), type: "button" }, "Dafür");
+    const no = el("button", { className: "btn" + (myVote && !myVote.vote ? "" : " secondary"), type: "button" }, "Dagegen");
+    yes.onclick = () => vote(true);
+    no.onclick = () => vote(false);
+    actions.append(yes, no);
+    if (myVote && myVote.vote && theirVote && theirVote.vote) {
+      const start = el("button", { className: "btn", type: "button" }, "Als Buddy Read starten");
+      start.onclick = async () => {
+        if (active) await sb.from("buddy_reads").update({ status: "done" }).eq("id", active.id);
+        await sb.from("buddy_reads").update({ status: "active" }).eq("id", p.id);
+        renderBuddy();
+      };
+      actions.append(start);
+    }
+    if (p.proposed_by === me.id) {
+      const withdraw = el("button", { className: "link-btn", type: "button" }, "Zurückziehen");
+      withdraw.onclick = async () => {
+        if (!confirm("Vorschlag zurückziehen?")) return;
+        await sb.from("buddy_reads").delete().eq("id", p.id);
+        renderBuddy();
+      };
+      actions.append(withdraw);
+    }
+    txt.append(actions);
+    row.append(cv, txt);
+    box.append(row);
+  }
+}
+
 // ---------- BookClub: Gemeinsame Klassiker ----------
 
 // [Schlüssel, Titel, Autor:in, Deckelfarbe]. Neue Titel einfach hier anhängen (keine Migration nötig).
@@ -2173,6 +2401,7 @@ function showTab(name) {
   if (name === "settings") renderSettings();
   if (name === "friend") renderFriendShelves();
   if (name === "bookclub") {
+    renderBuddy();
     renderClassics();
     loadClassics().then(renderClassics);
   }
@@ -2337,6 +2566,14 @@ async function addProfileBook(kind, book) {
   try {
     const { error: bookError } = await sb.from("books").upsert(bookToDb(book), { onConflict: "id", ignoreDuplicates: true });
     if (bookError) throw bookError;
+    if (kind === "buddy") {
+      const { error } = await sb.from("buddy_reads").upsert({ book_id: book.id, status: "proposed", proposed_by: me.id }, { onConflict: "book_id", ignoreDuplicates: true });
+      if (error) throw error;
+      $("add-dialog").close();
+      addKind = null;
+      await renderBuddy();
+      return;
+    }
     const { error } = await sb.from("profile_books").upsert({ user_id: me.id, kind, book_id: book.id }, { onConflict: "user_id,kind,book_id", ignoreDuplicates: true });
     if (error) throw error;
     $("add-dialog").close();

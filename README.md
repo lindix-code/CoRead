@@ -52,7 +52,7 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - [ ] 12. Neuer Reiter "BookClub" (Platzhalter in der Navigation ist da, Funktionen fehlen noch)
   - [ ] 12.1 Meilensteine, einzeln und gemeinsam anlegen
   - [ ] 12.2 Badges, die gemeinsam erworben werden
-  - [ ] 12.3 Buddy Read: Vorschlag machen, ein Buch parallel gemeinsam zu lesen, inkl. Kommentar-Funktion
+  - [x] 12.3 Buddy Read (Migration 017): Vorschlag machen, ein Buch parallel gemeinsam zu lesen, inkl. Kommentar-Funktion
   - [x] 12.4 Gemeinsame Klassiker: Kachel + Block mit Buchdeckeln, die bunt werden, sobald eine von euch das Buch als gelesen markiert (Migration 013)
 - [ ] 13. Zitate hinterlegen oder markieren
 - [ ] 14. Seitenanzahl zusammenzählen (einzeln und gemeinsam)

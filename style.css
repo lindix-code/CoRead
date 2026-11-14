@@ -733,3 +733,28 @@ header h1 { gap: 10px; }
 .bell-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .bell-row { text-align: left; background: #fff; border: 1px solid #cdd2d0; border-radius: 10px; padding: 12px 14px; font: inherit; color: #2d2e34; cursor: pointer; }
 .bell-row.fresh { border-color: var(--accent); background: #fbf4e8; font-weight: 600; }
+
+/* Buddy Read */
+.buddy { margin: 8px 0 20px; }
+.buddy h3 { margin: 0 0 8px; font-size: 1.2rem; }
+.buddy h4 { margin: 18px 0 6px; font-size: 1rem; }
+.buddy-card, .buddy-proposal { display: flex; gap: 14px; background: #fff; border-radius: 12px; padding: 12px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); margin-bottom: 10px; align-items: flex-start; }
+.buddy-cover { flex: 0 0 110px; cursor: pointer; }
+.buddy-cover.small { flex-basis: 64px; cursor: default; }
+.buddy-cover img, .buddy-cover .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; }
+.buddy-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.buddy-title { font-weight: 700; }
+.buddy-prog-head { font-size: 0.85rem; }
+.buddy-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.buddy-actions .btn { padding: 8px 14px; }
+.buddy-form { display: flex; flex-direction: column; gap: 8px; }
+.buddy-form textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; border: 1px solid #cdd2d0; border-radius: 8px; }
+.buddy-form-row { display: flex; gap: 12px; align-items: flex-end; }
+.buddy-form-row .field { flex: 1; margin-top: 0; }
+.buddy-form-row input { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 1rem; border: 1px solid #cdd2d0; border-radius: 8px; }
+.buddy-comments { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.buddy-comment { background: #fff; border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.buddy-comment.own { background: #eef5f1; }
+.buddy-comment .pre { white-space: pre-wrap; }
+.buddy-locked { color: #6b7074; font-style: italic; }
+.link-btn { background: none; border: 0; padding: 4px 0; color: #4f5459; text-decoration: underline; cursor: pointer; font: inherit; font-size: 0.85rem; align-self: flex-start; }
