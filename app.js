@@ -1114,7 +1114,7 @@ function heroCard(book) {
     : '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15l7-7 7 7"/></svg>';
   toggle.setAttribute("aria-label", compact ? "Aktuelles Buch groß anzeigen" : "Aktuelles Buch kompakt anzeigen");
   toggle.onclick = () => setHeroCompact(!heroCompact);
-  const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, isBuddyBook(book.id) ? `Ich lese gerade · Buddy Read mit ${friendNick}` : "Ich lese gerade"), toggle);
+  const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, "Ich lese gerade"), toggle);
 
   // Cover antippen öffnet die Details
   const cover = el("div", { className: "hero-cover tappable" }, coverElement(book));
