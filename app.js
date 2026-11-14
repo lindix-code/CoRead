@@ -12,7 +12,11 @@ let me = null; // eigenes Profil
 let friend = null; // Profil der Freundin (oder null)
 let myLibrary = []; // meine Bücher inkl. entry
 let libView = "mine"; // "mine" | "friend"
-let libList = "reading"; // aktive Unterliste in der Bibliothek
+try {
+  if (localStorage.getItem("coread-lib-view") === "friend") libView = "friend"; // zuletzt geöffnete Bücherei
+} catch (e) {}
+let friendNick = "Zaza"; // Spitzname der Freundin (bei Zaza: "Lindi")
+let libList = "shelf"; // aktive Unterliste in der Bibliothek
 let classicReads = []; // BookClub: wer hat welchen Klassiker gelesen ({ user_id, classic_id })
 
 // Unterlisten der Bibliothek: [Schlüssel, Name, Filter]
@@ -24,7 +28,6 @@ function isUnread(b) {
 const LISTS = [
   ["shelf", "Mein Bücherregal", (b) => b.entry.owned],
   ["unread", "Ungelesene Bücher", isUnread],
-  ["reading", "Lese ich gerade", (b) => b.entry.status === "reading"],
   ["read", "Abgeschlossen", (b) => b.entry.status === "read"],
   // Wunschliste: will ich lesen, habe ich aber noch nicht gekauft
   ["want", "Möchte ich lesen", (b) => b.entry.status === "want" && !b.entry.owned],
@@ -781,7 +784,13 @@ async function renderLibrary() {
   $("lib-mine").className = libView === "mine" ? "btn" : "btn secondary";
   $("lib-friend").className = libView === "friend" ? "btn" : "btn secondary";
   $("lib-friend").hidden = !friend;
-  if (friend) $("lib-friend").textContent = friend.display_name;
+  $("lib-friend").textContent = `${friendNick}s Bücher`;
+  if (libView === "friend" && !friend) libView = "mine"; // Freundin (noch) nicht verbunden
+  $("lib-mine").className = libView === "mine" ? "btn" : "btn secondary";
+  $("lib-friend").className = libView === "friend" ? "btn" : "btn secondary";
+  try {
+    localStorage.setItem("coread-lib-view", libView);
+  } catch (e) {}
 
   if (libView === "mine") {
     renderLists(myLibrary, false);
@@ -887,7 +896,6 @@ function renderLists(books, readOnly) {
 const PRESETS = {
   shelf: { owned: true, status: "" },
   unread: { owned: true, status: "want" },
-  reading: { owned: false, status: "reading" },
   read: { owned: false, status: "read" },
   want: { owned: false, status: "want" },
 };
@@ -2017,6 +2025,7 @@ async function onSession(session) {
     await loadFriend();
     // Reiter der Freundin: Zaza sieht "Lindi", alle anderen sehen "Zaza"
     const friendName = /zaza/i.test(me.display_name || "") ? "Lindi" : "Zaza";
+    friendNick = friendName;
     $("tab-friend").setAttribute("aria-label", friendName);
     $("tab-friend").title = friendName;
     $("tab-profile").hidden = false;
