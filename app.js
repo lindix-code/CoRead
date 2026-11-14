@@ -2269,7 +2269,7 @@ async function renderBuddy() {
 
   // --- Rangliste: bis zu drei Vorschläge, per Drag and Drop auf Platz 1 bis 3 ziehen ---
   const ranked = [...proposals].sort((x, y) => (x.rank ?? 999) - (y.rank ?? 999) || (x.created_at < y.created_at ? -1 : 1));
-  const head = el("div", { className: "bprop-head" }, el("span", {}, "Rangliste"));
+  const head = el("div", { className: "bprop-head" }, el("span", {}, "Next Read:"));
   if (ranked.length < 3) {
     const addBtn = el("button", { className: "bprop-add", type: "button" }, "+");
     addBtn.setAttribute("aria-label", "Buch vorschlagen");
@@ -2480,8 +2480,12 @@ function classicCard([id, title, author, color]) {
 
 function renderClassics() {
   if (!me) return;
-  const readCount = CLASSICS.filter(([id]) => classicReaders(id).length > 0).length;
-  $("classics-count").textContent = `${readCount} / ${CLASSICS.length}`;
+  // Erklärung verschwindet, sobald das Prinzip einmal benutzt wurde
+  let understood = classicReads.some((r) => r.user_id === me.id);
+  try {
+    understood = understood || localStorage.getItem("coread-classics-hint-done") === "1";
+  } catch (e) {}
+  $("classics-hint").hidden = understood;
   $("classics-grid").replaceChildren(...CLASSICS.map(classicCard));
 }
 
@@ -2495,13 +2499,15 @@ async function toggleClassic(id) {
     return;
   }
   $("classics-status").textContent = "";
+  try {
+    localStorage.setItem("coread-classics-hint-done", "1");
+  } catch (e) {}
   classicReads = has
     ? classicReads.filter((r) => !(r.classic_id === id && r.user_id === me.id))
     : [...classicReads, { user_id: me.id, classic_id: id }];
   renderClassics();
 }
 
-$("tile-classics").onclick = () => $("classics").scrollIntoView({ behavior: "smooth", block: "start" });
 
 // ---------- Login ----------
 

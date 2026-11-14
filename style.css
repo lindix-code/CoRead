@@ -862,3 +862,8 @@ dialog.sheet[open] { display: flex; }
 .bprop-btn { display: flex; align-items: center; justify-content: center; padding: 7px 9px; line-height: 0; }
 .bprop-start { background: var(--accent); border: 0; border-radius: 8px; padding: 5px 12px; font: inherit; font-size: 0.8rem; color: #2d2e34; cursor: pointer; margin: 4px 8px 0 0; }
 .bcard-comments svg { flex: none; }
+
+/* Kopfzeile: drei Symbole sollen auch auf schmalen Handys ganz sichtbar bleiben */
+.head-actions { gap: 0; }
+header .bell { padding: 6px 7px; }
+header { padding-right: 8px; }
