@@ -2067,7 +2067,17 @@ function setBell(count) {
   const badge = $("bell-badge");
   badge.hidden = count < 1;
   badge.textContent = count > 9 ? "9+" : String(count);
-  $("bell").setAttribute("aria-label", count ? `${count} neue Beiträge auf der Pinnwand` : "Pinnwand");
+  $("bell").setAttribute("aria-label", count ? `${count} Neuigkeiten` : "Neuigkeiten");
+}
+
+let bellPosts = 0;
+let bellEvents = 0;
+
+async function countEvents(table, extra) {
+  let q = sb.from(table).select("user_id", { count: "exact", head: true }).eq("user_id", friend.id).gt("created_at", me.events_seen_at);
+  if (extra) q = q.eq("kind", extra);
+  const { count, error } = await q;
+  return error ? 0 : count || 0;
 }
 
 async function refreshBell() {
@@ -2083,18 +2093,68 @@ async function refreshBell() {
     .select("id", { count: "exact", head: true })
     .neq("user_id", me.id)
     .gt("created_at", me.feed_seen_at);
-  if (!error) setBell(count || 0);
+  if (!error) bellPosts = count || 0;
+  // Neue Lieblingsbücher und abgehakte Klassiker der anderen Person (ab Migration 016)
+  bellEvents = 0;
+  if (friend && me.events_seen_at) {
+    bellEvents = (await countEvents("profile_books", "favorite")) + (await countEvents("classic_reads"));
+  }
+  setBell(bellPosts + bellEvents);
 }
 
 // Pinnwand wurde angesehen: alles bis zum neuesten Beitrag gilt als gelesen
 async function markFeedSeen(newestIso) {
   if (!me || !me.feed_seen_at || !newestIso || newestIso <= me.feed_seen_at) return;
   me.feed_seen_at = newestIso;
-  setBell(0);
+  bellPosts = 0;
+  setBell(bellEvents);
   await sb.from("profiles").update({ feed_seen_at: newestIso }).eq("id", me.id);
 }
 
-$("bell").onclick = () => showTab("feed");
+// Neuigkeiten-Liste: Pinnwand, neue Lieblingsbücher, abgehakte Klassiker
+$("bell").onclick = async () => {
+  const nick = friendNick || "Deine Freundin";
+  const rows = [];
+  if (bellPosts > 0) {
+    rows.push({ text: `${nick} hat ${bellPosts === 1 ? "einen neuen Beitrag" : bellPosts + " neue Beiträge"} auf der Pinnwand gepostet.`, go: "feed", fresh: true });
+  }
+  let newest = null;
+  if (friend && me.events_seen_at) {
+    const [fav, cls] = await Promise.all([
+      sb.from("profile_books").select("created_at, books(title)").eq("user_id", friend.id).eq("kind", "favorite").order("created_at", { ascending: false }).limit(8),
+      sb.from("classic_reads").select("created_at, classic_id").eq("user_id", friend.id).order("created_at", { ascending: false }).limit(8),
+    ]);
+    const events = [];
+    for (const r of fav.data || []) events.push({ at: r.created_at, text: `${nick} hat ein neues Lieblingsbuch markiert: ${r.books ? r.books.title : ""}`, go: "friend" });
+    for (const r of cls.data || []) {
+      const c = CLASSICS.find((x) => x[0] === r.classic_id);
+      events.push({ at: r.created_at, text: `${nick} hat einen Klassiker abgehakt: ${c ? c[1] : r.classic_id}`, go: "bookclub" });
+    }
+    events.sort((a, b) => (a.at < b.at ? 1 : -1));
+    for (const e of events) rows.push({ ...e, fresh: e.at > me.events_seen_at });
+    if (events.length) newest = events[0].at;
+  }
+  $("bell-list").replaceChildren(
+    ...(rows.length
+      ? rows.map((r) => {
+          const b = el("button", { className: "bell-row" + (r.fresh ? " fresh" : ""), type: "button" }, r.text);
+          b.onclick = () => {
+            $("bell-dialog").close();
+            showTab(r.go);
+          };
+          return b;
+        })
+      : [el("p", { className: "meta" }, "Noch keine Neuigkeiten.")])
+  );
+  $("bell-dialog").showModal();
+  if (newest && newest > me.events_seen_at) {
+    me.events_seen_at = newest;
+    bellEvents = 0;
+    setBell(bellPosts);
+    await sb.from("profiles").update({ events_seen_at: newest }).eq("id", me.id);
+  }
+};
+$("bell-close").onclick = () => $("bell-dialog").close();
 setInterval(refreshBell, 60000);
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) refreshBell();

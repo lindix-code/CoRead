@@ -63,3 +63,15 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 - [ ] 18. Inspiration anbieten, wenn gerade kein Buch gelesen wird (z. B. auf der Startseite statt "Du liest gerade kein Buch")
 - [ ] 19. Neuerscheinungen, Buchtipps oder die Spiegel-Bestsellerliste einfließen lassen (passt zu Punkt 18, Inspiration)
 - [x] Meilenstein (Zeitraum + Anzahl Bücher, Anzeige "12/15", bearbeitbar) auf der Startseite, Migration 012; gemeinsame Meilensteine folgen im BookClub (12.1)
+
+### Glöckchen: Regeln für Neuigkeiten
+
+Die Zahl am Glöckchen zählt Neuigkeiten der anderen Person seit deinem letzten Blick. Ein Tipp aufs Glöckchen öffnet die Liste "Neuigkeiten".
+
+- [x] Neuer Beitrag auf der Pinnwand (zählt, bis die Pinnwand geöffnet wird)
+- [x] Neues Lieblingsbuch markiert (Migration 016)
+- [x] Klassiker abgehakt (Migration 016)
+- [ ] Neue Buchempfehlung der anderen Person
+- [ ] Buddy-Read-Vorschlag und Kommentare dazu (kommt mit 12.3)
+- [ ] Gemeinsamer Meilenstein erreicht (kommt mit 12.1)
+- [ ] Später: dieselben Regeln als Push-Nachricht (Punkt 9)

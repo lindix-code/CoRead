@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -241,6 +241,12 @@
     </section>
   </main>
 
+  <dialog id="bell-dialog">
+    <button id="bell-close" class="close" aria-label="Schließen">×</button>
+    <h2>Neuigkeiten</h2>
+    <div id="bell-list" class="bell-list"></div>
+  </dialog>
+
   <dialog id="finish-dialog">
     <button id="finish-close" class="close" aria-label="Schließen">×</button>
     <h2>Buch abgeschlossen</h2>
@@ -336,6 +342,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

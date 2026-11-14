@@ -728,3 +728,8 @@ header h1 { gap: 10px; }
 /* Speichern-Symbol überdeckt keinen Text: Platz rechts neben Titel und Infos lassen */
 #detail .detail-top > div:last-child { padding-right: 44px; }
 #detail:has(.quick-save:not([hidden])) .detail-top > div:last-child { padding-right: 92px; }
+
+/* Neuigkeiten-Liste am Glöckchen */
+.bell-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.bell-row { text-align: left; background: #fff; border: 1px solid #cdd2d0; border-radius: 10px; padding: 12px 14px; font: inherit; color: #2d2e34; cursor: pointer; }
+.bell-row.fresh { border-color: var(--accent); background: #fbf4e8; font-weight: 600; }
