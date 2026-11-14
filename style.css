@@ -677,4 +677,4 @@ main { padding-bottom: 96px; }
 /* Kopfzeile mit Logo-Dateien (Buch + Schriftzug) */
 header h1 { gap: 10px; }
 .logo-book-img { height: 36px; width: auto; display: block; }
-.logo-word-img { height: 17px; width: auto; display: block; }
+.logo-word-img { height: 22px; width: auto; display: block; }
