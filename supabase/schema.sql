@@ -301,3 +301,20 @@ create policy "goals_update" on public.reading_goals for update to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "goals_delete" on public.reading_goals for delete to authenticated
   using (user_id = auth.uid());
+
+-- ---------- Gemeinsame Klassiker (Migration 013) ----------
+create table if not exists public.classic_reads (
+  user_id uuid not null references public.profiles (id) on delete cascade default auth.uid(),
+  classic_id text not null check (length(classic_id) between 1 and 60),
+  created_at timestamptz not null default now(),
+  primary key (user_id, classic_id)
+);
+
+alter table public.classic_reads enable row level security;
+
+create policy "classic_reads_select" on public.classic_reads for select to authenticated
+  using (user_id = auth.uid() or public.are_friends(auth.uid(), user_id));
+create policy "classic_reads_insert" on public.classic_reads for insert to authenticated
+  with check (user_id = auth.uid());
+create policy "classic_reads_delete" on public.classic_reads for delete to authenticated
+  using (user_id = auth.uid());

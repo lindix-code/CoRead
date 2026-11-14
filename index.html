@@ -62,10 +62,24 @@
       <div id="year-overview" class="overview" hidden></div>
     </section>
 
-    <!-- BookClub (Platzhalter) -->
+    <!-- BookClub -->
     <section id="view-bookclub" hidden>
       <h2>BookClub</h2>
       <p class="meta">Hier entstehen bald Meilensteine, gemeinsame Badges und Buddy Reads.</p>
+      <div class="tiles">
+        <button id="tile-classics" class="tile" type="button">
+          <span class="tile-label">Gemeinsame Klassiker</span>
+          <span class="tile-number" id="classics-count">0 / 0</span>
+          <span class="tile-sub">gelesen</span>
+        </button>
+      </div>
+
+      <div id="classics" class="classics">
+        <h3>Gemeinsame Klassiker</h3>
+        <p class="meta">Bücher, die man mal gelesen haben sollte. Tippe ein Buch an, wenn du es gelesen hast: Dann bekommt der Buchdeckel Farbe und dein Name steht darunter. Tippst du erneut, nimmst du die Markierung zurück.</p>
+        <p id="classics-status" role="status"></p>
+        <div id="classics-grid" class="classics-grid"></div>
+      </div>
     </section>
 
     <!-- Profil (Platzhalter) -->

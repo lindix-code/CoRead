@@ -13,6 +13,7 @@ let friend = null; // Profil der Freundin (oder null)
 let myLibrary = []; // meine Bücher inkl. entry
 let libView = "mine"; // "mine" | "friend"
 let libList = "reading"; // aktive Unterliste in der Bibliothek
+let classicReads = []; // BookClub: wer hat welchen Klassiker gelesen ({ user_id, classic_id })
 
 // Unterlisten der Bibliothek: [Schlüssel, Name, Filter]
 // Ungelesen = gekauft (im Bücherregal) und will ich noch lesen
@@ -1758,6 +1759,113 @@ $("connect-form").onsubmit = async (event) => {
   renderFriendPanel();
 };
 
+// ---------- BookClub: Gemeinsame Klassiker ----------
+
+// [Schlüssel, Titel, Autor:in, Deckelfarbe]. Neue Titel einfach hier anhängen (keine Migration nötig).
+// Der Schlüssel wird in der Datenbank gespeichert und darf sich nicht mehr ändern.
+const CLASSICS = [
+  ["faust", "Faust", "Goethe", "#7a1f2b"],
+  ["moby-dick", "Moby Dick", "Melville", "#1f4e6b"],
+  ["anna-karenina", "Anna Karenina", "Tolstoi", "#5b2a5e"],
+  ["unendliche-geschichte", "Die unendliche Geschichte", "Michael Ende", "#a5530f"],
+  ["kleiner-prinz", "Der kleine Prinz", "Saint-Exupéry", "#2f6b5e"],
+  ["1984", "1984", "George Orwell", "#9e1b1b"],
+  ["stolz-und-vorurteil", "Stolz und Vorurteil", "Jane Austen", "#8a4b6b"],
+  ["reise-zum-mittelpunkt-der-erde", "Die Reise zum Mittelpunkt der Erde", "Jules Verne", "#3f5f2a"],
+  ["krieg-und-frieden", "Krieg und Frieden", "Tolstoi", "#4a4a5e"],
+  ["hamlet", "Hamlet", "Shakespeare", "#1e2a4a"],
+  ["wer-die-nachtigall-stoert", "Wer die Nachtigall stört", "Harper Lee", "#6b4a2b"],
+  ["faenger-im-roggen", "Der Fänger im Roggen", "J. D. Salinger", "#b0402a"],
+  ["die-raeuber", "Die Räuber", "Friedrich Schiller", "#5c2e1b"],
+  ["great-gatsby", "The Great Gatsby", "F. Scott Fitzgerald", "#7a5c0e"],
+  ["don-quijote", "Don Quijote", "Cervantes", "#a0522d"],
+  ["jane-eyre", "Jane Eyre", "Charlotte Brontë", "#3b3f6e"],
+  ["wuthering-heights", "Wuthering Heights", "Emily Brontë", "#3e4a52"],
+  ["sommernachtstraum", "Ein Sommernachtstraum", "Shakespeare", "#4b2e83"],
+  ["mord-im-orientexpress", "Mord im Orientexpress", "Agatha Christie", "#2b2b2b"],
+  ["tom-sawyer", "Die Abenteuer des Tom Sawyer", "Mark Twain", "#8a5a00"],
+  ["huckleberry-finn", "Die Abenteuer des Huckleberry Finn", "Mark Twain", "#4f6f3a"],
+  ["odyssee", "Die Odyssee", "Homer", "#0e5a7a"],
+  ["zeitmaschine", "Die Zeitmaschine", "H. G. Wells", "#a33c6b"],
+  ["im-westen-nichts-neues", "Im Westen nichts Neues", "Erich Maria Remarque", "#4b4f3a"],
+];
+
+async function loadClassics() {
+  const { data, error } = await sb.from("classic_reads").select("user_id, classic_id");
+  if (error) {
+    $("classics-status").textContent =
+      "Die Klassiker konnten nicht geladen werden. Wurde Migration 013 im Supabase SQL Editor ausgeführt? (" + error.message + ")";
+    return;
+  }
+  $("classics-status").textContent = "";
+  classicReads = data;
+}
+
+// Namen derer, die das Buch gelesen haben (ich zuerst)
+function classicReaders(id) {
+  const names = [];
+  if (classicReads.some((r) => r.classic_id === id && r.user_id === me.id)) names.push(me.display_name);
+  if (friend && classicReads.some((r) => r.classic_id === id && r.user_id === friend.id)) names.push(friend.display_name);
+  return names;
+}
+
+function classicCard([id, title, author, color]) {
+  const readers = classicReaders(id);
+  const mine = classicReads.some((r) => r.classic_id === id && r.user_id === me.id);
+  const done = readers.length > 0;
+
+  const cover = el("div", { className: "classic-cover" + (done ? " done" : "") });
+  cover.style.setProperty("--cover", color);
+  cover.append(
+    el("div", { className: "classic-cover-title" }, title),
+    el("div", { className: "classic-cover-author" }, author)
+  );
+  if (done) {
+    const check = el("span", { className: "classic-check" }, "✓");
+    check.setAttribute("aria-hidden", "true");
+    cover.append(check);
+  }
+
+  const card = el("button", { className: "classic", type: "button" });
+  card.setAttribute("aria-pressed", String(mine));
+  card.setAttribute(
+    "aria-label",
+    `${title}: ` + (done ? `gelesen von ${readers.join(" und ")}` : "noch offen") + (mine ? ", Markierung zurücknehmen" : ", als gelesen markieren")
+  );
+  card.append(
+    cover,
+    el("div", { className: "classic-title" }, title),
+    el("div", { className: "classic-readers" }, done ? "von " + readers.join(" & ") : "")
+  );
+  card.onclick = () => toggleClassic(id);
+  return card;
+}
+
+function renderClassics() {
+  if (!me) return;
+  const readCount = CLASSICS.filter(([id]) => classicReaders(id).length > 0).length;
+  $("classics-count").textContent = `${readCount} / ${CLASSICS.length}`;
+  $("classics-grid").replaceChildren(...CLASSICS.map(classicCard));
+}
+
+async function toggleClassic(id) {
+  const has = classicReads.some((r) => r.classic_id === id && r.user_id === me.id);
+  const { error } = has
+    ? await sb.from("classic_reads").delete().eq("user_id", me.id).eq("classic_id", id)
+    : await sb.from("classic_reads").insert({ classic_id: id });
+  if (error) {
+    $("classics-status").textContent = "Das hat nicht geklappt: " + error.message;
+    return;
+  }
+  $("classics-status").textContent = "";
+  classicReads = has
+    ? classicReads.filter((r) => !(r.classic_id === id && r.user_id === me.id))
+    : [...classicReads, { user_id: me.id, classic_id: id }];
+  renderClassics();
+}
+
+$("tile-classics").onclick = () => $("classics").scrollIntoView({ behavior: "smooth", block: "start" });
+
 // ---------- Login ----------
 
 function authMessage(text) {
@@ -1806,6 +1914,7 @@ async function onSession(session) {
     me = null;
     friend = null;
     myLibrary = [];
+    classicReads = [];
     $("bell").hidden = true;
     $("tab-profile").hidden = true;
     for (const id of ["view-home", "view-library", "view-feed", "view-bookclub", "view-profile", "view-friend"]) $(id).hidden = true;
@@ -1879,6 +1988,10 @@ function showTab(name) {
   }
   if (name === "library") renderLibrary();
   if (name === "home") renderHome();
+  if (name === "bookclub") {
+    renderClassics();
+    loadClassics().then(renderClassics);
+  }
   if (name === "feed") {
     feedLimit = FEED_PAGE;
     loadFeed();
