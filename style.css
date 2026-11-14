@@ -908,3 +908,6 @@ body.auth-mode input { background: #fff; color: #2d2e34; }
 :root[data-theme="dark"] .buddy h3,
 :root[data-theme="dark"] main h2,
 :root[data-theme="dark"] main h3 { color: var(--accent); }
+
+/* Dunkel: nicht aktive Jahres-Reiter in Mint */
+:root[data-theme="dark"] .subtabs .btn.secondary { background: var(--mint); color: var(--on-accent); }
