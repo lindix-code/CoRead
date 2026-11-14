@@ -905,6 +905,7 @@ const PRESETS = {
 };
 
 $("lib-add").onclick = () => {
+  addKind = null;
   const [, label] = LISTS.find(([key]) => key === libList);
   $("add-title").textContent = `Buch hinzufügen: ${label}`;
   $("add-query").value = ""; // altes Suchwort nicht stehen lassen
@@ -914,6 +915,7 @@ $("lib-add").onclick = () => {
   $("add-query").focus();
 };
 $("add-close").onclick = () => $("add-dialog").close();
+$("add-dialog").addEventListener("close", () => { addKind = null; });
 $("add-form").onsubmit = async (event) => {
   event.preventDefault();
   const preset = PRESETS[libList];
@@ -925,7 +927,7 @@ $("add-form").onsubmit = async (event) => {
     $("add-results").replaceChildren(
       ...books.map((book) => {
         const card = bookCard(book, false);
-        card.onclick = () => showDetail(book, false, preset);
+        card.onclick = () => (addKind ? addProfileBook(addKind, book) : showDetail(book, false, preset));
         return card;
       })
     );
@@ -2087,13 +2089,17 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function showTab(name) {
-  for (const n of ["home", "library", "feed", "bookclub", "profile", "friend"]) {
+  const navName = name === "settings" ? "profile" : name;
+  for (const n of ["home", "library", "feed", "bookclub", "profile", "settings", "friend"]) {
     $("view-" + n).hidden = n !== name;
-    $("tab-" + n).classList.toggle("active", n === name);
+    if (n !== "settings") $("tab-" + n).classList.toggle("active", n === navName);
   }
+  window.scrollTo(0, 0);
   if (name === "library") renderLibrary();
   if (name === "home") renderHome();
   if (name === "profile") renderProfile();
+  if (name === "settings") renderSettings();
+  if (name === "friend") renderFriendShelves();
   if (name === "bookclub") {
     renderClassics();
     loadClassics().then(renderClassics);
@@ -2108,11 +2114,156 @@ $("tab-home").onclick = () => showTab("home");
 $("tab-bookclub").onclick = () => showTab("bookclub");
 $("tab-profile").onclick = () => showTab("profile");
 
+
+// ---------- Profil: Lieblingsbücher, Buchempfehlung, Ausgeliehen ----------
+
+const SHELVES = {
+  favorite: { add: "Lieblingsbuch hinzufügen", notePlaceholder: "Was liebst du an diesem Buch? (optional)", noteLabel: "Deine Notiz", empty: "Noch kein Lieblingsbuch. Mit + fügst du eins hinzu." },
+  recommendation: { add: "Buchempfehlung hinzufügen", notePlaceholder: "Warum sollte sie es lesen? (optional)", noteLabel: "Deine Empfehlung", empty: "Noch keine Empfehlung. Mit + fügst du eine hinzu." },
+  borrowed: { add: "Ausgeliehenes Buch hinzufügen", notePlaceholder: "An wen oder von wem, bis wann? (optional)", noteLabel: "Ausgeliehen an/von", empty: "Nichts ausgeliehen. Mit + merkst du dir ein Buch." },
+};
+
+let profileBooks = []; // eigene
+let friendProfileBooks = []; // von der anderen Person (ohne "Ausgeliehen")
+let addKind = null; // gesetzt, wenn die Buchsuche für das Profil geöffnet wurde
+
+async function fetchProfileBooks(userId) {
+  const { data, error } = await sb
+    .from("profile_books")
+    .select("id, kind, note, created_at, books(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.map((r) => ({ ...dbToBook(r.books), pbId: r.id, kind: r.kind, note: r.note || "" }));
+}
+
+function slideCard(item, readOnly) {
+  const card = el("button", { className: "slide", type: "button" });
+  card.append(coverElement(item), el("div", { className: "title" }, item.title), el("div", { className: "author" }, item.authors.join(", ")));
+  if (item.note) card.append(el("div", { className: "slide-note" }, item.note));
+  card.onclick = () => openProfileBook(item, readOnly);
+  return card;
+}
+
+function renderShelf(container, items, kind, readOnly, emptyText) {
+  const list = items.filter((i) => i.kind === kind);
+  if (!list.length) {
+    container.replaceChildren(el("p", { className: "meta shelf-empty" }, emptyText));
+    return;
+  }
+  container.replaceChildren(...list.map((i) => slideCard(i, readOnly)));
+}
+
+async function renderProfile() {
+  const nick = friendNick || "deine Freundin";
+  $("rec-title").textContent = friend ? `Buchempfehlung für ${nick}` : "Buchempfehlung";
+  try {
+    profileBooks = await fetchProfileBooks(me.id);
+  } catch (err) {
+    profileBooks = [];
+    for (const k of Object.keys(SHELVES)) $("shelf-" + k).replaceChildren(el("p", { className: "meta" }, "Konnte nicht geladen werden: " + err.message));
+    return;
+  }
+  for (const k of Object.keys(SHELVES)) renderShelf($("shelf-" + k), profileBooks, k, false, SHELVES[k].empty);
+}
+
+async function renderFriendShelves() {
+  const box = $("friend-shelves");
+  if (!friend) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  const nick = friendNick || friend.display_name;
+  $("friend-fav-title").textContent = `${nick}s Lieblingsbücher`;
+  $("friend-rec-title").textContent = `Empfehlungen von ${nick}`;
+  try {
+    friendProfileBooks = await fetchProfileBooks(friend.id);
+  } catch (err) {
+    friendProfileBooks = [];
+  }
+  renderShelf($("friend-shelf-favorite"), friendProfileBooks, "favorite", true, "Noch nichts eingetragen.");
+  renderShelf($("friend-shelf-recommendation"), friendProfileBooks, "recommendation", true, "Noch nichts eingetragen.");
+}
+
+function openProfileBook(item, readOnly) {
+  const cfg = SHELVES[item.kind];
+  const box = $("pb-content");
+  const top = el("div", { className: "detail-top" });
+  const cover = el("div", { className: "cover-slot" });
+  cover.append(coverElement(item));
+  top.append(cover, el("div", {}, el("h2", {}, item.title), el("div", { className: "meta" }, item.authors.join(", "))));
+  box.replaceChildren(top);
+  if (readOnly) {
+    box.append(item.note ? el("p", { className: "pre" }, item.note) : el("p", { className: "meta" }, "Keine Notiz."));
+  } else {
+    const area = el("textarea", { rows: 4, maxLength: 500, placeholder: cfg.notePlaceholder });
+    area.value = item.note;
+    const msg = el("p", { className: "meta", role: "status" });
+    const save = el("button", { className: "btn", type: "button" }, "Speichern");
+    save.onclick = async () => {
+      save.disabled = true;
+      const { error } = await sb.from("profile_books").update({ note: area.value.trim() || null }).eq("id", item.pbId);
+      if (error) {
+        msg.textContent = "Das hat nicht geklappt: " + error.message;
+        save.disabled = false;
+        return;
+      }
+      $("pb-dialog").close();
+      renderProfile();
+    };
+    const remove = el("button", { className: "btn secondary", type: "button" }, "Entfernen");
+    remove.onclick = async () => {
+      if (!confirm("Dieses Buch aus der Liste entfernen?")) return;
+      const { error } = await sb.from("profile_books").delete().eq("id", item.pbId);
+      if (error) {
+        msg.textContent = "Das hat nicht geklappt: " + error.message;
+        return;
+      }
+      $("pb-dialog").close();
+      renderProfile();
+    };
+    box.append(el("label", { className: "field" }, cfg.noteLabel, area), msg, el("div", { className: "actions" }, save, remove));
+  }
+  $("pb-dialog").showModal();
+}
+$("pb-close").onclick = () => $("pb-dialog").close();
+
+async function addProfileBook(kind, book) {
+  $("add-status").textContent = "Speichere …";
+  try {
+    const { error: bookError } = await sb.from("books").upsert(bookToDb(book), { onConflict: "id", ignoreDuplicates: true });
+    if (bookError) throw bookError;
+    const { error } = await sb.from("profile_books").upsert({ user_id: me.id, kind, book_id: book.id }, { onConflict: "user_id,kind,book_id", ignoreDuplicates: true });
+    if (error) throw error;
+    $("add-dialog").close();
+    addKind = null;
+    await renderProfile();
+  } catch (err) {
+    $("add-status").textContent = "Das hat nicht geklappt: " + err.message;
+  }
+}
+
+for (const btn of document.querySelectorAll(".shelf-add")) {
+  btn.onclick = () => {
+    addKind = btn.dataset.kind;
+    $("add-title").textContent = SHELVES[addKind].add;
+    $("add-query").value = "";
+    $("add-status").textContent = "";
+    $("add-results").replaceChildren();
+    $("add-dialog").showModal();
+    $("add-query").focus();
+  };
+}
+
+$("open-settings").onclick = () => showTab("settings");
+$("settings-back").onclick = () => showTab("profile");
+
 // ---------- Profil / Einstellungen ----------
 
 let appInfo = {};
 
-async function renderProfile() {
+async function renderSettings() {
   const { data } = await sb.auth.getUser();
   const email = data && data.user ? data.user.email : "";
   $("profile-info").textContent = `${me.display_name}${email ? " · " + email : ""}`;

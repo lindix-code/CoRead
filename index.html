@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -93,9 +93,38 @@
       </div>
     </section>
 
-    <!-- Profil (Platzhalter) -->
+    <!-- Profil -->
     <section id="view-profile" hidden>
-      <h2>Profil</h2>
+      <div class="page-head">
+        <h2 id="profile-title">Profil</h2>
+        <button id="open-settings" class="icon-btn" type="button" aria-label="Einstellungen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+        </button>
+      </div>
+
+      <div class="shelf-section">
+        <div class="shelf-head"><h3>Absolute Lieblingsbücher</h3><button class="shelf-add" type="button" data-kind="favorite" aria-label="Lieblingsbuch hinzufügen">+</button></div>
+        <div id="shelf-favorite" class="slides"></div>
+      </div>
+      <div class="shelf-section">
+        <div class="shelf-head"><h3 id="rec-title">Buchempfehlung</h3><button class="shelf-add" type="button" data-kind="recommendation" aria-label="Buchempfehlung hinzufügen">+</button></div>
+        <div id="shelf-recommendation" class="slides"></div>
+      </div>
+      <div class="shelf-section">
+        <div class="shelf-head"><h3>Ausgeliehen</h3><button class="shelf-add" type="button" data-kind="borrowed" aria-label="Ausgeliehenes Buch hinzufügen">+</button></div>
+        <p class="meta">Nur für dich sichtbar, als Erinnerung.</p>
+        <div id="shelf-borrowed" class="slides"></div>
+      </div>
+    </section>
+
+    <!-- Einstellungen -->
+    <section id="view-settings" hidden>
+      <div class="page-head">
+        <button id="settings-back" class="icon-btn" type="button" aria-label="Zurück zum Profil">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+        </button>
+        <h2>Einstellungen</h2>
+      </div>
       <p id="profile-info" class="meta"></p>
 
       <div class="settings">
@@ -199,6 +228,16 @@
         </form>
         <p id="friend-status" role="status"></p>
       </div>
+      <div id="friend-shelves" hidden>
+        <div class="shelf-section">
+          <div class="shelf-head"><h3 id="friend-fav-title">Lieblingsbücher</h3></div>
+          <div id="friend-shelf-favorite" class="slides"></div>
+        </div>
+        <div class="shelf-section">
+          <div class="shelf-head"><h3 id="friend-rec-title">Empfehlungen</h3></div>
+          <div id="friend-shelf-recommendation" class="slides"></div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -285,6 +324,11 @@
     <div id="add-results" class="grid"></div>
   </dialog>
 
+  <dialog id="pb-dialog">
+    <button id="pb-close" class="close" aria-label="Schließen">×</button>
+    <div id="pb-content"></div>
+  </dialog>
+
   <dialog id="detail">
     <button id="close" class="close" aria-label="Schließen">×</button>
     <div id="detail-content"></div>
@@ -292,6 +336,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
