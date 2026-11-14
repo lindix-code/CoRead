@@ -46,7 +46,9 @@ Kein Zugriff auf Thalia/Hugendubel (keine öffentliche API, Scraping verstößt 
 ### Ideen für später (gesammelt, noch nicht eingeplant)
 
 - [x] 10. Aktuelles Buch auf der Startseite größer/kleiner stellen können
-- [ ] 11. Profil: anlegen, Passwort ändern, Farben ändern usw.
+- [x] 11. Profil: Passwort ändern, E-Mail ändern, Support per WhatsApp, Impressum, Abmelden (Migration 014)
+  - [ ] 11.1 Erscheinungsbild: drei Farbvarianten festlegen und umschaltbar machen (Platzhalter im Profil ist da)
+  - [ ] 11.2 Dunkelmodus
 - [ ] 12. Neuer Reiter "BookClub" (Platzhalter in der Navigation ist da, Funktionen fehlen noch)
   - [ ] 12.1 Meilensteine, einzeln und gemeinsam anlegen
   - [ ] 12.2 Badges, die gemeinsam erworben werden
