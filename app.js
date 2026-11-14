@@ -1100,9 +1100,11 @@ function heroCard(book) {
   const { form, msg } = buildProgressForm(book, {
     compact,
     onSaved: async () => {
+      const before = currentPage(book);
       homeBookId = book.id;
       await reloadMyLibrary();
       renderHome();
+      if (isBuddyBook(book.id)) checkBuddyUnlocks(book.id, before);
     },
   });
 
@@ -2005,6 +2007,141 @@ function buddyCover(book) {
   return coverElement(own ? { ...book, cover: own.cover } : book);
 }
 
+
+function buddySeenAt(readId) {
+  try {
+    return localStorage.getItem("coread-buddy-seen-" + readId) || "1970-01-01T00:00:00Z";
+  } catch (e) {
+    return "1970-01-01T00:00:00Z";
+  }
+}
+
+const buddyRevealed = new Set();
+
+async function renderBuddyThread() {
+  const box = $("buddy-thread");
+  try {
+    await loadBuddy();
+  } catch (err) {
+    box.replaceChildren(el("p", { className: "meta" }, "Konnte nicht geladen werden: " + err.message));
+    return;
+  }
+  const active = buddy.reads.find((r) => r.status === "active");
+  if (!active) {
+    $("buddy-title").textContent = "Buddy Read";
+    box.replaceChildren(el("p", { className: "meta" }, "Gerade läuft kein Buddy Read."));
+    $("buddy-composer").hidden = true;
+    return;
+  }
+  $("buddy-composer").hidden = false;
+  const book = active.book;
+  $("buddy-title").textContent = book.title;
+  const nick = friendNick || "deine Freundin";
+  const mine = myLibrary.find((b) => b.id === book.id);
+  const myPage = currentPage(mine);
+  const total = (mine && mine.pages) || book.pages || 0;
+  const pctText = (p) => (total ? ` (${Math.min(100, Math.round((p / total) * 100))} %)` : "");
+  const pageIn = $("buddy-page");
+  if (pageIn.dataset.read !== active.id) {
+    pageIn.value = Number.isFinite(myPage) && myPage > 0 ? String(myPage) : "";
+    pageIn.dataset.read = active.id;
+  }
+
+  const comments = buddy.comments.filter((c) => c.read_id === active.id).sort((a, b) => ((a.page ?? -1) - (b.page ?? -1)) || (a.created_at < b.created_at ? -1 : 1));
+  if (!comments.length) {
+    box.replaceChildren(el("p", { className: "meta" }, "Noch keine Kommentare. Schreib den ersten unten."));
+    return;
+  }
+  const seen = buddySeenAt(active.id);
+  // Nach Seite gruppieren (wie im Buch), verdeckte Kommentare einer Seite zu einer Karte bündeln
+  const groups = new Map();
+  for (const c of comments) {
+    const key = c.page == null ? "all" : String(c.page);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(c);
+  }
+  const out = [];
+  for (const [key, list] of groups) {
+    const page = key === "all" ? null : Number(key);
+    const title = page == null ? "Allgemein" : `Seite ${page}${pctText(page)}`;
+    const locked = list.filter((c) => c.user_id !== me.id && page != null && page > myPage && !buddyRevealed.has(c.id));
+    const shown = list.filter((c) => !locked.includes(c));
+    const card = el("div", { className: "buddy-group" }, el("div", { className: "buddy-group-title" }, title));
+    for (const c of shown) {
+      const own = c.user_id === me.id;
+      const item = el("div", { className: "buddy-comment" + (own ? " own" : "") });
+      item.append(el("div", { className: "meta" }, `${own ? "Du" : nick} · ${new Date(c.created_at).toLocaleDateString("de-DE")}${!own && c.created_at > seen ? " · neu" : ""}`), el("div", { className: "pre" }, c.body));
+      if (own) {
+        const del = el("button", { className: "link-btn", type: "button" }, "Löschen");
+        del.onclick = async () => {
+          if (!confirm("Kommentar löschen?")) return;
+          await sb.from("buddy_comments").delete().eq("id", c.id);
+          renderBuddyThread();
+        };
+        item.append(del);
+      }
+      card.append(item);
+    }
+    if (locked.length) {
+      const lock = el("button", { className: "buddy-lock", type: "button" });
+      lock.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+      lock.append(
+        el("span", { className: "buddy-lock-text" }, el("strong", {}, locked.length === 1 ? "1 Kommentar verdeckt" : `${locked.length} Kommentare verdeckt`), el("span", { className: "meta" }, `Erreiche Seite ${page}${pctText(page)}, um ${locked.length === 1 ? "ihn" : "sie"} zu sehen. Oder tippe zum Aufdecken.`))
+      );
+      lock.onclick = () => {
+        for (const c of locked) buddyRevealed.add(c.id);
+        renderBuddyThread();
+      };
+      card.append(lock);
+    }
+    out.push(card);
+  }
+  box.replaceChildren(...out);
+  // Beim Ansehen gelten Kommentare als gelesen
+  const newest = comments.reduce((m, c) => (c.created_at > m ? c.created_at : m), seen);
+  try {
+    localStorage.setItem("coread-buddy-seen-" + active.id, newest);
+  } catch (e) {}
+}
+
+$("buddy-form").onsubmit = async (event) => {
+  event.preventDefault();
+  const active = buddy.reads.find((r) => r.status === "active");
+  const area = $("buddy-text");
+  if (!active || !area.value.trim()) return;
+  const send = $("buddy-send");
+  send.disabled = true;
+  const pageVal = $("buddy-page").value;
+  const { error } = await sb.from("buddy_comments").insert({ read_id: active.id, body: area.value.trim(), page: pageVal === "" ? null : Math.max(0, Math.round(Number(pageVal))) });
+  send.disabled = false;
+  if (error) {
+    alert("Das hat nicht geklappt: " + error.message);
+    return;
+  }
+  area.value = "";
+  renderBuddyThread();
+};
+$("buddy-back").onclick = () => showTab("bookclub");
+
+// Nach einem Fortschritts-Update: sind Kommentare der anderen Person freigeschaltet worden?
+async function checkBuddyUnlocks(bookId, beforePage) {
+  try {
+    await loadBuddy();
+    const active = buddy.reads.find((r) => r.status === "active" && r.book_id === bookId);
+    if (!active) return;
+    const now = currentPage(myLibrary.find((b) => b.id === bookId));
+    const count = buddy.comments.filter((c) => c.read_id === active.id && c.user_id !== me.id && c.page != null && c.page > beforePage && c.page <= now).length;
+    if (!count) return;
+    $("unlock-text").textContent = count === 1 ? "Du hast 1 neuen Kommentar aufgedeckt." : `Du hast ${count} neue Kommentare aufgedeckt.`;
+    $("unlock-dialog").showModal();
+  } catch (e) {}
+}
+$("unlock-open").onclick = () => {
+  $("unlock-dialog").close();
+  showTab("buddy");
+};
+$("unlock-close").onclick = () => $("unlock-dialog").close();
+
 async function renderBuddy() {
   const box = $("buddy");
   let first = !buddy.reads.length;
@@ -2042,9 +2179,11 @@ async function renderBuddy() {
       const { form, msg } = buildProgressForm(mine, {
         compact: true,
         onSaved: async () => {
+          const before = currentPage(mine);
           await reloadMyLibrary();
           renderHome();
           renderBuddy();
+          checkBuddyUnlocks(mine.id, before);
         },
       });
       info.append(form, msg);
@@ -2052,51 +2191,16 @@ async function renderBuddy() {
     card.append(cover, info);
     box.append(card);
 
-    // --- Kommentare mit Spoilerschutz ---
+    // --- Kommentare: nur ein Knopf, die Liste liegt auf einer eigenen Seite ---
     const myPage = currentPage(mine);
-    const comments = buddy.comments.filter((c) => c.read_id === active.id);
-    const form = el("form", { className: "buddy-form" });
-    const area = el("textarea", { rows: 3, maxLength: 1000, placeholder: "Dein Kommentar zum Buch …", required: true });
-    const pageIn = el("input", { type: "number", min: 0, inputMode: "numeric", placeholder: "Seite" });
-    pageIn.value = Number.isFinite(myPage) && myPage > 0 ? String(myPage) : "";
-    const send = el("button", { className: "btn", type: "submit" }, "Senden");
-    form.append(area, el("div", { className: "buddy-form-row" }, el("label", { className: "field" }, "Bei Seite (Spoilerschutz)", pageIn), send));
-    form.onsubmit = async (event) => {
-      event.preventDefault();
-      send.disabled = true;
-      const { error } = await sb.from("buddy_comments").insert({ read_id: active.id, body: area.value.trim(), page: pageIn.value === "" ? null : Math.max(0, Math.round(Number(pageIn.value))) });
-      if (error) {
-        send.disabled = false;
-        alert("Das hat nicht geklappt: " + error.message);
-        return;
-      }
-      renderBuddy();
-    };
-    const list = el("div", { className: "buddy-comments" });
-    for (const c of comments) {
-      const own = c.user_id === me.id;
-      const hidden = !own && c.page != null && c.page > myPage;
-      const who = own ? "Du" : nick;
-      const when = new Date(c.created_at).toLocaleDateString("de-DE");
-      const item = el("div", { className: "buddy-comment" + (own ? " own" : "") });
-      item.append(el("div", { className: "meta" }, `${who} · ${when}${c.page != null ? " · Seite " + c.page : ""}`));
-      if (hidden) {
-        item.append(el("div", { className: "buddy-locked" }, `Kommentar zu Seite ${c.page}. Er wird sichtbar, sobald du dort angekommen bist.`));
-      } else {
-        item.append(el("div", { className: "pre" }, c.body));
-        if (own) {
-          const del = el("button", { className: "link-btn", type: "button" }, "Löschen");
-          del.onclick = async () => {
-            if (!confirm("Kommentar löschen?")) return;
-            await sb.from("buddy_comments").delete().eq("id", c.id);
-            renderBuddy();
-          };
-          item.append(del);
-        }
-      }
-      list.append(item);
-    }
-    box.append(el("h4", {}, "Kommentare"), form, comments.length ? list : el("p", { className: "meta" }, "Noch keine Kommentare."));
+    const others = buddy.comments.filter((c) => c.read_id === active.id && c.user_id !== me.id);
+    const seen = buddySeenAt(active.id);
+    const fresh = others.filter((c) => c.created_at > seen && (c.page == null || c.page <= myPage)).length;
+    const total = buddy.comments.filter((c) => c.read_id === active.id).length;
+    const open = el("button", { className: "buddy-open", type: "button" }, el("span", {}, total ? `Kommentare (${total})` : "Kommentare"));
+    if (fresh) open.append(el("span", { className: "buddy-new" }, `${fresh} neu`));
+    open.onclick = () => showTab("buddy");
+    box.append(open);
   } else {
     box.append(el("p", { className: "meta" }, "Gerade läuft kein Buddy Read. Schlagt unten eins vor."));
   }
@@ -2450,16 +2554,17 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function showTab(name) {
-  const navName = name === "settings" ? "profile" : name;
-  for (const n of ["home", "library", "feed", "bookclub", "profile", "settings", "friend"]) {
+  const navName = name === "settings" ? "profile" : name === "buddy" ? "bookclub" : name;
+  for (const n of ["home", "library", "feed", "bookclub", "profile", "settings", "buddy", "friend"]) {
     $("view-" + n).hidden = n !== name;
-    if (n !== "settings") $("tab-" + n).classList.toggle("active", n === navName);
+    if (n !== "settings" && n !== "buddy") $("tab-" + n).classList.toggle("active", n === navName);
   }
   window.scrollTo(0, 0);
   if (name === "library") renderLibrary();
   if (name === "home") renderHome();
   if (name === "profile") renderProfile();
   if (name === "settings") renderSettings();
+  if (name === "buddy") renderBuddyThread();
   if (name === "friend") renderFriendShelves();
   if (name === "bookclub") {
     renderBuddy();

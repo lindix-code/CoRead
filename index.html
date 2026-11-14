@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=19">
+  <link rel="stylesheet" href="style.css?v=20">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -115,6 +115,24 @@
         <p class="meta">Nur für dich sichtbar, als Erinnerung.</p>
         <div id="shelf-borrowed" class="pslides"></div>
       </div>
+    </section>
+
+    <!-- Buddy Read: Kommentare -->
+    <section id="view-buddy" hidden>
+      <div class="page-head">
+        <button id="buddy-back" class="icon-btn" type="button" aria-label="Zurück zum BookClub">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+        </button>
+        <h2 id="buddy-title">Buddy Read</h2>
+      </div>
+      <div id="buddy-thread" class="buddy-thread"></div>
+      <form id="buddy-composer" class="buddy-composer">
+        <input id="buddy-page" type="number" min="0" inputmode="numeric" placeholder="Seite" aria-label="Bei Seite (Spoilerschutz)">
+        <input id="buddy-text" type="text" maxlength="1000" placeholder="Schreibe einen Kommentar …" autocomplete="off" required>
+        <button id="buddy-send" type="submit" class="icon-btn" aria-label="Senden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 10 14"/><path d="M21 3 14 21l-4-7-7-4z"/></svg>
+        </button>
+      </form>
     </section>
 
     <!-- Einstellungen -->
@@ -241,6 +259,13 @@
     </section>
   </main>
 
+  <dialog id="unlock-dialog" class="sheet">
+    <h2 id="unlock-text">Neue Kommentare aufgedeckt.</h2>
+    <p class="meta">Sieh dir an, was die andere zu den gelesenen Seiten geschrieben hat.</p>
+    <button id="unlock-open" class="btn" type="button">Kommentare ansehen</button>
+    <button id="unlock-close" class="link-btn" type="button">Später</button>
+  </dialog>
+
   <dialog id="bell-dialog">
     <button id="bell-close" class="close" aria-label="Schließen">×</button>
     <h2>Neuigkeiten</h2>
@@ -342,6 +367,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=25"></script>
+  <script src="app.js?v=26"></script>
 </body>
 </html>
