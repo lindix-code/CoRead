@@ -2127,7 +2127,7 @@ async function renderProfile() {
   const link = $("support-link");
   const webLink = $("support-link-web");
   if (number) {
-    const text = encodeURIComponent("Hallo Lindi, bei CoRead gibt es etwas: ");
+    const text = encodeURIComponent("Hallo Lindi mir ist folgendes im BookClub aufgefallen: ");
     link.href = `whatsapp://send?phone=${number}&text=${text}`;
     link.removeAttribute("target");
     webLink.href = `https://wa.me/${number}?text=${text}`;
