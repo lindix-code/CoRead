@@ -2104,7 +2104,7 @@ async function renderBuddyThread() {
   } catch (e) {}
 }
 
-$("buddy-form").onsubmit = async (event) => {
+$("buddy-composer").onsubmit = async (event) => {
   event.preventDefault();
   const active = buddy.reads.find((r) => r.status === "active");
   const area = $("buddy-text");
