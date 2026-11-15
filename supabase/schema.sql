@@ -122,6 +122,7 @@ create table public.library_entries (
   pages_total int,                                            -- eigene Seitenzahl, falls die Datenquelle keine hat
   rating smallint check (rating between 1 and 5),
   custom_cover text,                                          -- eigenes Cover (URL im Storage)
+  custom_title text check (custom_title is null or char_length(custom_title) between 1 and 200),  -- eigener Titel
   started_at date,                                            -- Begonnen am
   finished_at date,                                           -- Lesedatum (für den Jahres-Tracker)
   added_at timestamptz not null default now(),
