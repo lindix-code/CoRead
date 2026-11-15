@@ -1903,6 +1903,7 @@ function renderFriendPanel() {
     ? `Verbunden mit ${friend.display_name}.`
     : "Noch nicht verbunden. Schick deiner Freundin deinen Code oder gib hier ihren ein.";
   $("connect-form").hidden = !!friend;
+  $("friend-connect").hidden = !!friend; // ist verbunden: Einladungscode wird nicht mehr gebraucht
 }
 
 $("connect-form").onsubmit = async (event) => {
@@ -3459,6 +3460,24 @@ async function renderProfile() {
   for (const k of Object.keys(SHELVES)) renderShelf($("shelf-" + k), profileBooks, k, false, SHELVES[k].empty);
 }
 
+// Karte "liest gerade" für die Freundin: wie auf der Startseite, nur zum Ansehen
+function friendHeroCard(book, nick) {
+  const info = progressInfo(book);
+  const compact = heroCompact;
+  const fill = el("div", { className: "bar-fill" });
+  fill.style.width = info.pct + "%";
+  const bar = el("div", { className: "bar" }, fill);
+  const labelRow = el("div", { className: "hero-top" }, el("div", { className: "hero-label" }, `${nick} liest gerade`));
+  const cover = el("div", { className: "hero-cover tappable" }, coverElement(book));
+  cover.setAttribute("role", "button");
+  cover.setAttribute("aria-label", `Details zu ${book.title}`);
+  cover.onclick = () => showDetail(book, true);
+  const authors = el("div", { className: "author" }, book.authors.join(", "));
+  const title = compact ? el("div", { className: "hero-title-btn" }, book.title) : el("h2", {}, book.title);
+  const body = el("div", { className: "hero-info" }, labelRow, title, authors, bar, el("div", { className: "progress-text" }, info.text));
+  return el("div", { className: compact ? "hero compact" : "hero" }, cover, body);
+}
+
 async function renderFriendShelves() {
   const box = $("friend-shelves");
   if (!friend) {
@@ -3468,20 +3487,62 @@ async function renderFriendShelves() {
   box.hidden = false;
   const nick = friendNick || friend.display_name;
   $("friend-fav-title").textContent = `${nick}s Lieblingsbücher`;
-  $("friend-rec-title").textContent = `Empfehlungen von ${nick}`;
-  const fa = friend.favorite_authors || [];
-  const fi = friend.interests || [];
-  $("friend-prefs").hidden = !fa.length && !fi.length;
-  $("friend-prefs-title").textContent = `Vorlieben von ${nick}`;
-  $("friend-pref-authors").replaceChildren(...fa.map((n) => prefChip(n)));
-  $("friend-pref-interests").replaceChildren(...fi.map((n) => prefChip(n)));
+
+  let lib = [];
+  let fGoals = [];
+  try {
+    lib = await fetchLibrary(friend.id);
+  } catch (err) {}
+  try {
+    const { data } = await sb.from("reading_goals").select("period_start, period_end, target").eq("user_id", friend.id).order("created_at", { ascending: false });
+    fGoals = data || [];
+  } catch (err) {}
+
+  // Liest gerade (neueste zuerst, wie auf der Startseite)
+  const reading = lib
+    .filter((b) => b.entry.status === "reading")
+    .map((b, i) => ({ b, i, k: b.entry.startedAt || "9999-12-31" }))
+    .sort((x, y) => (x.k < y.k ? 1 : x.k > y.k ? -1 : x.i - y.i))
+    .map((x) => x.b);
+  const hero = $("friend-hero");
+  if (!reading.length) {
+    hero.replaceChildren(el("div", { className: "hero empty" }, el("p", {}, `${nick} liest gerade kein Buch.`)));
+  } else {
+    const track = el("div", { className: "carousel" }, ...reading.map((b) => el("div", { className: "slide" }, friendHeroCard(b, nick))));
+    const dots = reading.map((b, i) => {
+      const dot = el("button", { className: i === 0 ? "dot active" : "dot", type: "button", "aria-label": `Buch ${i + 1}: ${b.title}` });
+      dot.onclick = () => track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" });
+      return dot;
+    });
+    track.onscroll = () => {
+      const i = Math.round(track.scrollLeft / track.clientWidth);
+      dots.forEach((dot, j) => dot.classList.toggle("active", j === i));
+    };
+    hero.replaceChildren(track, ...(reading.length > 1 ? [el("div", { className: "dots" }, ...dots)] : []));
+  }
+
+  // Kacheln
+  $("friend-shelf-count").textContent = lib.filter((b) => b.entry.owned).length;
+  $("friend-stack-count").textContent = lib.filter(isUnread).length;
+  const today = todayLocal();
+  const goal = fGoals.find((g) => g.period_start <= today && today <= g.period_end);
+  const readIn = (from, to) => lib.filter((b) => b.entry.status === "read" && b.entry.finishedAt && b.entry.finishedAt >= from && b.entry.finishedAt <= to);
+  if (goal) {
+    $("friend-year-label").textContent = goalLabel(goal);
+    $("friend-year-count").textContent = `${readIn(goal.period_start, goal.period_end).length}/${goal.target}`;
+  } else {
+    const year = String(new Date().getFullYear());
+    $("friend-year-label").textContent = `Gelesen ${year}`;
+    $("friend-year-count").textContent = readIn(`${year}-01-01`, `${year}-12-31`).length;
+  }
+
+  // Lieblingsbücher als Galerie
   try {
     friendProfileBooks = await fetchProfileBooks(friend.id);
   } catch (err) {
     friendProfileBooks = [];
   }
   renderShelf($("friend-shelf-favorite"), friendProfileBooks, "favorite", true, "Noch nichts eingetragen.");
-  renderShelf($("friend-shelf-recommendation"), friendProfileBooks, "recommendation", true, "Noch nichts eingetragen.");
 }
 
 function openProfileBook(item, readOnly) {

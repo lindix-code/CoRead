@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=53">
+  <link rel="stylesheet" href="style.css?v=54">
   <link id="fav-link" rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link id="touch-link" rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -261,7 +261,7 @@
 
     <!-- Verbindung mit der Freundin -->
     <section id="view-friend" hidden>
-      <div class="stack">
+      <div id="friend-connect" class="stack">
         <h2>Deine Verbindung</h2>
         <p id="friend-info"></p>
         <p>Dein Einladungscode: <strong id="my-code" class="code"></strong></p>
@@ -272,18 +272,24 @@
         <p id="friend-status" role="status"></p>
       </div>
       <div id="friend-shelves" hidden>
+        <div id="friend-hero"></div>
+        <div class="tiles">
+          <div class="tile static">
+            <span class="tile-label">Bücherregal</span>
+            <span class="tile-number" id="friend-shelf-count">0</span>
+          </div>
+          <div class="tile static">
+            <span class="tile-label">Stapel ungelesener Bücher</span>
+            <span class="tile-number" id="friend-stack-count">0</span>
+          </div>
+          <div class="tile static">
+            <span class="tile-label" id="friend-year-label">Gelesen</span>
+            <span class="tile-number" id="friend-year-count">0</span>
+          </div>
+        </div>
         <div class="shelf-section">
           <div class="shelf-head"><h3 id="friend-fav-title">Lieblingsbücher</h3></div>
           <div id="friend-shelf-favorite" class="pslides"></div>
-        </div>
-        <div class="shelf-section" hidden>
-          <div class="shelf-head"><h3 id="friend-rec-title">Empfehlungen</h3></div>
-          <div id="friend-shelf-recommendation" class="pslides"></div>
-        </div>
-        <div class="shelf-section" id="friend-prefs" hidden>
-          <div class="shelf-head"><h3 id="friend-prefs-title">Vorlieben</h3></div>
-          <div id="friend-pref-authors" class="chips"></div>
-          <div id="friend-pref-interests" class="chips"></div>
         </div>
       </div>
     </section>
@@ -403,6 +409,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=54"></script>
+  <script src="app.js?v=55"></script>
 </body>
 </html>

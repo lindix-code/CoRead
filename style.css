@@ -1038,3 +1038,7 @@ html:has(body.auth-mode) { overflow: hidden; }
 :root[data-theme="pastel"] .head-actions button,
 :root[data-theme="pastel"] .bottom-nav .tab { color: var(--surface2); }
 :root[data-theme="pastel"] .bottom-nav .tab.active { color: var(--accent); background: rgba(228, 188, 127, 0.28); }
+
+/* Kacheln auf der Freundin-Seite sind nur zum Ansehen */
+.tile.static { cursor: default; }
+#friend-shelves .tiles { margin-bottom: 8px; }
