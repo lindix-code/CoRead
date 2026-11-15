@@ -561,7 +561,9 @@ header { flex-wrap: wrap; gap: 4px; }
   .hero:not(.compact) { align-items: center; }
   .hero:not(.compact) .hero-info { width: 100%; }
   .hero:not(.compact) .hero-top { justify-content: center; position: relative; }
-  .hero:not(.compact) .hero-toggle { position: absolute; right: 0; top: 0; }
+  .hero:not(.compact) .hero-toggle { position: absolute; right: 0; top: -4px; width: 26px; height: 26px; }
+  .hero:not(.compact) .hero-toggle svg { width: 15px; height: 15px; }
+  .hero:not(.compact) .hero-top { margin-bottom: 6px; }
   .hero.compact .hero-cover { width: 84px; }
   .hero.compact .progress-input .btn { padding: 5px 8px; font-size: 0.78rem; }
   .hero.compact .progress-input input { width: 52px; }
