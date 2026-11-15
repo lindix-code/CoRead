@@ -12,7 +12,9 @@ create table public.profiles (
   invite_code text not null unique
     default upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8)),
   created_at timestamptz not null default now(),
-  feed_seen_at timestamptz not null default now()
+  feed_seen_at timestamptz not null default now(),
+  favorite_authors text[] not null default '{}' check (coalesce(array_length(favorite_authors, 1), 0) <= 40),  -- Lieblingsautoren
+  interests text[] not null default '{}' check (coalesce(array_length(interests, 1), 0) <= 60)               -- Interessen & Genres
 );
 
 -- Beim Registrieren automatisch ein Profil anlegen
