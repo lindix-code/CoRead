@@ -937,10 +937,8 @@ body.auth-mode input { background: #fff; color: #2d2e34; }
 :root[data-theme="flieder-dunkel"] .classic-title { color: var(--text); }
 
 /* Dunkle Themes: Ziffern in Mint/Lavendel, Zwischenüberschriften in Gold */
-:root[data-theme="dark"] .tile-number,
 :root[data-theme="dark"] .btile-number,
 :root[data-theme="dark"] .bcard-stats .friend,
-:root[data-theme="flieder-dunkel"] .tile-number,
 :root[data-theme="flieder-dunkel"] .btile-number,
 :root[data-theme="flieder-dunkel"] .bcard-stats .friend { color: var(--mint); }
 :root[data-theme="dark"] .bprop-head,
@@ -1046,3 +1044,8 @@ html:has(body.auth-mode) { overflow: hidden; }
 /* Kacheln auf der Freundin-Seite sind nur zum Ansehen */
 .tile.static { cursor: default; }
 #friend-shelves .tiles { margin-bottom: 8px; }
+
+/* Kachel-Ziffern: alle auf einer Höhe (unten), im Dunkelmodus in Gold */
+.tile-number { margin-top: auto; }
+:root[data-theme="dark"] .tile-number,
+:root[data-theme="flieder-dunkel"] .tile-number { color: var(--accent); }
