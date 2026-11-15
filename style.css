@@ -1033,3 +1033,8 @@ html:has(body.auth-mode) { overflow: hidden; }
 :root[data-theme="pastel"] body.auth-mode { background: #ad91a9; }
 :root[data-theme="pastel"] body.auth-mode #auth-status { color: #3e2a3c; }
 :root[data-theme="pastel"] body.auth-mode #btn-signup { color: #3e2a3c; border-color: #3e2a3c; }
+
+/* Pastel: Schriftzug und Symbole oben und unten in Gold */
+:root[data-theme="pastel"] .head-actions button,
+:root[data-theme="pastel"] .bottom-nav .tab { color: var(--accent); }
+:root[data-theme="pastel"] .bottom-nav .tab.active { background: rgba(228, 188, 127, 0.28); }

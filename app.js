@@ -3747,7 +3747,7 @@ const THEMES = {
 const THEME_ASSETS = {
   petrol: { fav: "assets/favicon-32.png?v=2", touch: "assets/apple-touch-icon.png?v=2", book: "assets/header-book.png", word: "assets/header-bookclub.png" },
   flieder: { fav: "assets/favicon-flieder-32.png?v=1", touch: "assets/apple-touch-icon-flieder.png?v=1", book: "assets/header-book-flieder.png?v=1", word: "assets/header-bookclub.png" },
-  pastel: { fav: "assets/favicon-pastel-32.png?v=1", touch: "assets/apple-touch-icon-pastel.png?v=1", book: "assets/header-book-pastel.png?v=1", word: "assets/header-bookclub-pastel.png?v=1" },
+  pastel: { fav: "assets/favicon-pastel-32.png?v=1", touch: "assets/apple-touch-icon-pastel.png?v=1", book: "assets/header-book-pastel.png?v=1", word: "assets/header-bookclub.png" },
 };
 function applyTheme(t) {
   if (!THEMES[t]) t = "petrol";
