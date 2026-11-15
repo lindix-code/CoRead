@@ -3054,7 +3054,7 @@ $("pref-interest-form").onsubmit = (e) => {
 
 // ---------- Buchempfehlungen "Für dich" (Startseite) ----------
 
-const RECS_KEY = "coread-recs";
+const RECS_KEY = "coread-recs-v2";
 const RECS_DISMISS_KEY = "coread-recs-dismissed";
 const RECS_MAX_AGE = 12 * 60 * 60 * 1000;
 const GENRE_SUBJECT = {
@@ -3078,14 +3078,50 @@ function readJson(key, fallback) {
 }
 const recDismissed = () => new Set(readJson(RECS_DISMISS_KEY, []));
 
-function ownedKeys() {
-  const keys = new Set();
+// Titel auf den Kern reduzieren: "Origin - Text" und "Origin" sind dasselbe Buch
+function coreTitle(t) {
+  let s = String(t || "").toLocaleLowerCase("de").replace(/[(\[].*?[)\]]/g, " ");
+  s = s.split(/\s[-–—]\s|:/)[0];
+  s = normName(s).replace(/\b(roman|band|bd|teil|buch|ausgabe)\s*\d*\b/g, " ").replace(/\s\d+$/, "").replace(/\s+/g, " ").trim();
+  return s;
+}
+const surname = (n) => normName(n).split(" ").pop();
+const sameAuthor = (x, y) => nameScore(x, y) >= 0.8 || (surname(x).length >= 3 && surname(x) === surname(y));
+function sameBook(a, b) {
+  const aa = a.authors || [], ab = b.authors || [];
+  if (aa.length && ab.length && !aa.some((x) => ab.some((y) => sameAuthor(x, y)))) return false;
+  const ca = coreTitle(a.title), cb = coreTitle(b.title);
+  if (!ca || !cb) return false;
+  if (ca === cb || editRatio(ca, cb) >= 0.88) return true;
+  const [short, long] = ca.length <= cb.length ? [ca, cb] : [cb, ca];
+  return short.length >= 4 && long.startsWith(short + " ") && long.split(" ").length - short.split(" ").length <= 2;
+}
+function ownedBooks() {
+  const list = [];
   for (const b of myLibrary) {
-    keys.add("id:" + b.id);
-    keys.add(recBookKey(b));
-    keys.add(recBookKey({ title: b.originalTitle || b.title, authors: b.authors }));
+    list.push({ id: b.id, title: b.title, authors: b.authors });
+    if (b.originalTitle && b.originalTitle !== b.title) list.push({ id: b.id, title: b.originalTitle, authors: b.authors });
   }
-  return keys;
+  return list;
+}
+const isOwned = (book, own) => own.some((o) => o.id === book.id || sameBook(o, book));
+
+// Nur deutschsprachige Bücher
+function germanOk(b) {
+  const l = String(b.language || "").toLowerCase();
+  return l === "ger" || l.startsWith("de");
+}
+// Keine Dissertationen, Lektürehilfen oder wissenschaftlichen Arbeiten
+const SCI_TITLE = /dissertation|doctoral|thesis|habilitation|masterarbeit|bachelorarbeit|diplomarbeit|magisterarbeit|hausarbeit|seminararbeit|facharbeit|wissenschaftlich|\bstudie\b|untersuchung|tagungsband|proceedings|festschrift|interpretation|textanalyse|abitur|klausur|referat|handbuch|beiträge zur|zur frage|empirische/i;
+const SCI_PUBLISHER = /universit|hochschule|akademikerverlag|grin\b|diplomica|vdm\b|lap lambert|springer|de gruyter|tectum|waxmann|kovač|peter lang|nomos|duncker|mohr siebeck|wissenschaftlich|academic|press\b/i;
+const SCI_CATEGORY = /literary criticism|study aids|education|dissertation|thesis|academic|reference|language arts|social science|philosophy|psychology|political science|law\b|medical|computers|technology & engineering|business & economics/i;
+function scienceLike(b) {
+  const text = `${b.title || ""} ${b.subtitle || ""}`;
+  if (SCI_TITLE.test(text)) return true;
+  if (SCI_PUBLISHER.test(b.publisher || "")) return true;
+  if ((b.categories || []).some((c) => SCI_CATEGORY.test(String(c)))) return true;
+  if (b.pages && b.pages < 60) return true;
+  return false;
 }
 
 async function authorBooksForRecs(name) {
@@ -3115,20 +3151,21 @@ async function subjectBooksForRecs(term) {
 }
 
 async function buildRecs() {
-  const own = ownedKeys();
+  const own = ownedBooks();
   const dismissed = recDismissed();
-  const chosen = new Set();
-  const ok = (b) => {
+  const chosen = [];
+  const ok = (b, src) => {
     if (!b || !b.cover || !b.title || RECS_JUNK.test(b.title)) return false;
-    const k = recBookKey(b);
-    return !own.has("id:" + b.id) && !own.has(k) && !dismissed.has(k) && !chosen.has(k);
+    if (src !== "friend" && (!germanOk(b) || scienceLike(b))) return false;
+    if (isOwned(b, own) || dismissed.has(recBookKey(b))) return false;
+    return !chosen.some((c) => sameBook(c, b));
   };
   const take = (list, n, reason, src) => {
     const out = [];
     for (const b of list) {
       if (out.length >= n) break;
-      if (!ok(b)) continue;
-      chosen.add(recBookKey(b));
+      if (!ok(b, src)) continue;
+      chosen.push(b);
       out.push({ book: b, reason, src });
     }
     return out;
@@ -3213,9 +3250,9 @@ function renderRecs() {
   const box = $("home-recs");
   if (!box) return;
   const cache = readJson(RECS_KEY, null);
-  const own = ownedKeys();
+  const own = ownedBooks();
   const dismissed = recDismissed();
-  const items = ((cache && cache.items) || []).filter((it) => !own.has("id:" + it.book.id) && !own.has(recBookKey(it.book)) && !dismissed.has(recBookKey(it.book)));
+  const items = ((cache && cache.items) || []).filter((it) => !isOwned(it.book, own) && !dismissed.has(recBookKey(it.book)));
   if (!items.length) {
     box.hidden = true;
     return;
