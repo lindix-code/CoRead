@@ -3109,7 +3109,7 @@ function openRecFeedback(item) {
   blockRow.hidden = true;
   const note = el("textarea", { rows: 3, maxLength: 500, placeholder: "Weil … (optional)" });
   note.setAttribute("aria-label", "Anmerkung");
-  const send = el("button", { className: "btn", type: "button", disabled: true }, "Senden");
+  const send = el("button", { className: "btn", type: "button" }, "Senden");
   const draw = () => {
     chips.replaceChildren(
       ...RECS_REASONS.map((r) => {
@@ -3118,7 +3118,7 @@ function openRecFeedback(item) {
         c.onclick = () => {
           reason = r;
           blockRow.hidden = r !== "Interessiert mich nicht";
-          send.disabled = false;
+          msg.textContent = "";
           draw();
         };
         return c;
@@ -3164,7 +3164,13 @@ function openRecFeedback(item) {
     return true;
   };
   send.onclick = async () => {
-    if (!reason) return;
+    if (!reason) {
+      if (!note.value.trim()) {
+        msg.textContent = "Bitte wähle zuerst oben einen Grund aus.";
+        return;
+      }
+      reason = "Anderes"; // nur Text eingegeben: als "Anderes" speichern
+    }
     send.disabled = true;
     if (reason === "Habe ich schon gelesen") {
       const cands = similarOwned();
