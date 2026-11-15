@@ -2457,18 +2457,18 @@ function enableRankDrag(list) {
 const CLASSICS = [
   ["faust", "Faust", "Goethe", "#7a1f2b"],
   ["moby-dick", "Moby Dick", "Melville", "#1f4e6b"],
-  ["anna-karenina", "Anna Karenina", "Tolstoi", "#5b2a5e"],
+  ["anna-karenina", "Anna Karenina", "Tolstoi", "#5b2a5e", "anna-karenina.jpg"],
   ["unendliche-geschichte", "Die unendliche Geschichte", "Michael Ende", "#a5530f"],
-  ["kleiner-prinz", "Der kleine Prinz", "Saint-Exupéry", "#2f6b5e"],
-  ["1984", "1984", "George Orwell", "#9e1b1b"],
-  ["stolz-und-vorurteil", "Stolz und Vorurteil", "Jane Austen", "#8a4b6b"],
+  ["kleiner-prinz", "Der kleine Prinz", "Saint-Exupéry", "#2f6b5e", "kleiner-prinz.jpg"],
+  ["1984", "1984", "George Orwell", "#9e1b1b", "1984.jpg"],
+  ["stolz-und-vorurteil", "Stolz und Vorurteil", "Jane Austen", "#8a4b6b", "stolz-und-vorurteil.jpg"],
   ["reise-zum-mittelpunkt-der-erde", "Die Reise zum Mittelpunkt der Erde", "Jules Verne", "#3f5f2a"],
-  ["krieg-und-frieden", "Krieg und Frieden", "Tolstoi", "#4a4a5e"],
+  ["krieg-und-frieden", "Krieg und Frieden", "Tolstoi", "#4a4a5e", "krieg-und-frieden.jpg"],
   ["hamlet", "Hamlet", "Shakespeare", "#1e2a4a"],
   ["wer-die-nachtigall-stoert", "Wer die Nachtigall stört", "Harper Lee", "#6b4a2b"],
   ["faenger-im-roggen", "Der Fänger im Roggen", "J. D. Salinger", "#b0402a"],
   ["die-raeuber", "Die Räuber", "Friedrich Schiller", "#5c2e1b"],
-  ["great-gatsby", "The Great Gatsby", "F. Scott Fitzgerald", "#7a5c0e"],
+  ["great-gatsby", "The Great Gatsby", "F. Scott Fitzgerald", "#7a5c0e", "great-gatsby.jpg"],
   ["don-quijote", "Don Quijote", "Cervantes", "#a0522d"],
   ["jane-eyre", "Jane Eyre", "Charlotte Brontë", "#3b3f6e"],
   ["wuthering-heights", "Wuthering Heights", "Emily Brontë", "#3e4a52"],
@@ -2476,9 +2476,11 @@ const CLASSICS = [
   ["mord-im-orientexpress", "Mord im Orientexpress", "Agatha Christie", "#2b2b2b"],
   ["tom-sawyer", "Die Abenteuer des Tom Sawyer", "Mark Twain", "#8a5a00"],
   ["huckleberry-finn", "Die Abenteuer des Huckleberry Finn", "Mark Twain", "#4f6f3a"],
-  ["odyssee", "Die Odyssee", "Homer", "#0e5a7a"],
+  ["odyssee", "Die Odyssee", "Homer", "#0e5a7a", "odyssee.jpg"],
   ["zeitmaschine", "Die Zeitmaschine", "H. G. Wells", "#a33c6b"],
   ["im-westen-nichts-neues", "Im Westen nichts Neues", "Erich Maria Remarque", "#4b4f3a"],
+  ["little-women", "Little Women", "Louisa May Alcott", "#c8596a", "little-women.jpg"],
+  ["phantom-der-oper", "Das Phantom der Oper", "Gaston Leroux", "#2f3441", "phantom-der-oper.jpg"],
 ];
 
 async function loadClassics() {
@@ -2500,17 +2502,29 @@ function classicReaders(id) {
   return names;
 }
 
-function classicCard([id, title, author, color]) {
+function classicCard([id, title, author, color, image]) {
   const readers = classicReaders(id);
   const mine = classicReads.some((r) => r.classic_id === id && r.user_id === me.id);
   const done = readers.length > 0;
 
   const cover = el("div", { className: "classic-cover" + (done ? " done" : "") });
   cover.style.setProperty("--cover", color);
-  cover.append(
-    el("div", { className: "classic-cover-title" }, title),
-    el("div", { className: "classic-cover-author" }, author)
-  );
+  if (image) {
+    // Buchdeckel als Bild (schwarz-weiß, bis ein Buch gelesen ist)
+    cover.classList.add("has-img");
+    const img = el("img", { src: `assets/classics/${image}?v=1`, alt: "", loading: "lazy" });
+    img.onerror = () => {
+      cover.classList.remove("has-img");
+      img.remove();
+      cover.prepend(el("div", { className: "classic-cover-title" }, title), el("div", { className: "classic-cover-author" }, author));
+    };
+    cover.append(img);
+  } else {
+    cover.append(
+      el("div", { className: "classic-cover-title" }, title),
+      el("div", { className: "classic-cover-author" }, author)
+    );
+  }
   if (done) {
     const check = el("span", { className: "classic-check" }, "✓");
     check.setAttribute("aria-hidden", "true");
