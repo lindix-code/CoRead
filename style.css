@@ -982,3 +982,7 @@ input[type="checkbox"]:checked {
 /* Lange Wörter im Titel dürfen umbrechen statt über die Kachel zu laufen */
 .card { min-width: 0; overflow: hidden; }
 .card .title, .card .author, .card .meta { overflow-wrap: anywhere; hyphens: auto; }
+
+/* Desktop: Scrollleiste immer reservieren, damit das Menüband beim Seitenwechsel nicht hin und her springt */
+html { overflow-y: scroll; scrollbar-gutter: stable; }
+html:has(body.auth-mode) { overflow: hidden; }
