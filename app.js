@@ -1325,6 +1325,8 @@ function renderHome() {
   renderYearOverview(); // liegt im Bookjournal, bleibt nach Änderungen aktuell
 
   $("stack-count").textContent = stackBooks().length;
+  renderRecs();
+  refreshRecs();
 }
 
 // Stapel ungelesener Bücher (SuB): gekauft (Bücherregal) und noch zu lesen
@@ -3049,6 +3051,217 @@ $("pref-interest-form").onsubmit = (e) => {
   e.preventDefault();
   addPref("pref-interest-input", "interests");
 };
+
+// ---------- Buchempfehlungen "Für dich" (Startseite) ----------
+
+const RECS_KEY = "coread-recs";
+const RECS_DISMISS_KEY = "coread-recs-dismissed";
+const RECS_MAX_AGE = 12 * 60 * 60 * 1000;
+const GENRE_SUBJECT = {
+  Fantasy: "fantasy", Romantasy: "fantasy romance", Krimi: "mystery", Thriller: "thriller", Liebesroman: "romance",
+  "Historischer Roman": "historical fiction", "Science-Fiction": "science fiction", Klassiker: "classics", "Young Adult": "young adult fiction",
+  Sachbuch: "nonfiction", Biografie: "biography", Humor: "humor", Horror: "horror", Dystopie: "dystopian",
+  "Dark Romance": "dark romance", Mythologie: "mythology", Psychothriller: "psychological thriller", Abenteuer: "adventure",
+};
+const RECS_JUNK = /zusammenfassung|analyse|lektürehilfe|study guide|summary|erläuterungen|arbeitsheft|sammelband|\b(box|bundle)\b|gesamtausgabe|trivia|workbook/i;
+let recsBusy = false;
+
+const recBookKey = (b) => normName(b.title) + "|" + normName((b.authors || [])[0] || "");
+const shuffled = (list) => [...list].sort(() => Math.random() - 0.5);
+function readJson(key, fallback) {
+  try {
+    const v = JSON.parse(localStorage.getItem(key));
+    return v == null ? fallback : v;
+  } catch (e) {
+    return fallback;
+  }
+}
+const recDismissed = () => new Set(readJson(RECS_DISMISS_KEY, []));
+
+function ownedKeys() {
+  const keys = new Set();
+  for (const b of myLibrary) {
+    keys.add("id:" + b.id);
+    keys.add(recBookKey(b));
+    keys.add(recBookKey({ title: b.originalTitle || b.title, authors: b.authors }));
+  }
+  return keys;
+}
+
+async function authorBooksForRecs(name) {
+  let res = [];
+  try {
+    res = await searchGoogle(`inauthor:"${name}"`, "de");
+  } catch (e) {
+    try {
+      res = await searchOpenLibrary(`author:"${name}"`, "");
+    } catch (e2) {
+      res = [];
+    }
+  }
+  return res.filter((b) => (b.authors || []).some((a) => nameScore(name, a) >= 0.8));
+}
+async function subjectBooksForRecs(term) {
+  const q = GENRE_SUBJECT[term] ? `subject:${GENRE_SUBJECT[term]}` : term;
+  try {
+    return await searchGoogle(q, "de");
+  } catch (e) {
+    try {
+      return await searchOpenLibrary(GENRE_SUBJECT[term] || term, "");
+    } catch (e2) {
+      return [];
+    }
+  }
+}
+
+async function buildRecs() {
+  const own = ownedKeys();
+  const dismissed = recDismissed();
+  const chosen = new Set();
+  const ok = (b) => {
+    if (!b || !b.cover || !b.title || RECS_JUNK.test(b.title)) return false;
+    const k = recBookKey(b);
+    return !own.has("id:" + b.id) && !own.has(k) && !dismissed.has(k) && !chosen.has(k);
+  };
+  const take = (list, n, reason, src) => {
+    const out = [];
+    for (const b of list) {
+      if (out.length >= n) break;
+      if (!ok(b)) continue;
+      chosen.add(recBookKey(b));
+      out.push({ book: b, reason, src });
+    }
+    return out;
+  };
+
+  // 1. Bücher, die der Freundin gefallen haben
+  const groups = { friend: [], rated: [], fav: [], genre: [] };
+  if (friend) {
+    let flib = [];
+    try {
+      flib = await fetchLibrary(friend.id);
+    } catch (e) {}
+    const liked = flib.filter((b) => b.entry.status === "read" && (b.entry.rating || 0) >= 4).sort((x, y) => y.entry.rating - x.entry.rating);
+    for (const b of liked) {
+      const book = { ...b, id: b.id };
+      delete book.entry;
+      groups.friend.push(...take([book], 1, `Gefällt ${friendNick} (${"★".repeat(b.entry.rating)}) und könnte dir auch gefallen!`, "friend"));
+      if (groups.friend.length >= 3) break;
+    }
+  }
+
+  // 2. Weitere Bücher der Autoren, die ich hoch bewertet habe, 3. Lieblingsautoren, 4. Interessen
+  const usedAuthors = new Set();
+  const seeds = [];
+  const readBooks = myLibrary.filter((b) => b.entry.status === "read" && (b.authors || []).length);
+  const pool = [...shuffled(readBooks.filter((b) => b.entry.rating === 5)), ...shuffled(readBooks.filter((b) => b.entry.rating === 4)), ...shuffled(readBooks.filter((b) => !b.entry.rating))];
+  for (const b of pool) {
+    const a = b.authors[0];
+    if (usedAuthors.has(prefKey(a))) continue;
+    usedAuthors.add(prefKey(a));
+    const why = b.entry.rating === 5 ? `Weil du „${b.title}“ mit 5 Sternen bewertet hast.` : b.entry.rating === 4 ? `Weil dir „${b.title}“ gefallen hat (4 Sterne).` : `Weil du „${b.title}“ gelesen hast.`;
+    seeds.push({ kind: "rated", author: a, reason: "Kennst du schon? " + why });
+    if (seeds.length >= 3) break;
+  }
+  for (const name of shuffled(me.favorite_authors || [])) {
+    if (usedAuthors.has(prefKey(name))) continue;
+    usedAuthors.add(prefKey(name));
+    seeds.push({ kind: "fav", author: name, reason: `Kennst du schon? ${name} gehört zu deinen Lieblingsautoren.` });
+    if (seeds.filter((s) => s.kind === "fav").length >= 3) break;
+  }
+  const topics = shuffled(me.interests || []).slice(0, 3);
+
+  const results = await Promise.all([
+    ...seeds.map((s) => authorBooksForRecs(s.author).then((list) => ({ s, list }))),
+    ...topics.map((t) => subjectBooksForRecs(t).then((list) => ({ t, list }))),
+  ]);
+  for (const r of results) {
+    if (r.s) groups[r.s.kind].push(...take(r.list, 2, r.s.reason, r.s.kind));
+    else groups.genre.push(...take(shuffled(r.list).slice(0, 12), 2, `Passt zu deinem Interesse „${r.t}“.`, "genre"));
+  }
+
+  // abwechselnd mischen
+  const order = ["friend", "rated", "fav", "genre"];
+  const out = [];
+  for (let i = 0; out.length < 10 && i < 10; i++) for (const g of order) if (groups[g][i] && out.length < 10) out.push(groups[g][i]);
+  return out;
+}
+
+function recsSignature() {
+  return JSON.stringify([me.favorite_authors || [], me.interests || [], friend ? friend.id : null]);
+}
+
+async function refreshRecs(force) {
+  if (!me || recsBusy) return;
+  const cache = readJson(RECS_KEY, null);
+  if (!force && cache && cache.sig === recsSignature() && Date.now() - cache.ts < RECS_MAX_AGE) return;
+  recsBusy = true;
+  try {
+    const items = await buildRecs();
+    try {
+      localStorage.setItem(RECS_KEY, JSON.stringify({ ts: Date.now(), sig: recsSignature(), items }));
+    } catch (e) {}
+    renderRecs();
+  } catch (e) {
+    // Empfehlungen sind optional: bei Fehlern bleibt der Bereich einfach leer
+  } finally {
+    recsBusy = false;
+  }
+}
+
+function renderRecs() {
+  const box = $("home-recs");
+  if (!box) return;
+  const cache = readJson(RECS_KEY, null);
+  const own = ownedKeys();
+  const dismissed = recDismissed();
+  const items = ((cache && cache.items) || []).filter((it) => !own.has("id:" + it.book.id) && !own.has(recBookKey(it.book)) && !dismissed.has(recBookKey(it.book)));
+  if (!items.length) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  const cards = items.map((it) => {
+    const b = it.book;
+    const card = el("div", { className: "rec" });
+    const cover = el("button", { className: "rec-cover", type: "button" }, coverElement(b));
+    cover.setAttribute("aria-label", b.title + " ansehen");
+    cover.onclick = () => showDetail(b, false, { status: "want" });
+    const add = el("button", { className: "btn small", type: "button" }, "+ Merken");
+    add.onclick = async () => {
+      add.disabled = true;
+      try {
+        await saveEntry(b, { status: "want", owned: false, audiobook: false, startedAt: null, finishedAt: null, progress: null, rating: null, customCover: null });
+        await reloadMyLibrary();
+        renderHome();
+      } catch (err) {
+        add.disabled = false;
+        add.textContent = "Fehler, nochmal";
+      }
+    };
+    const no = el("button", { className: "btn secondary small", type: "button" }, "Nicht für mich");
+    no.onclick = () => {
+      const list = [...recDismissed(), recBookKey(b)];
+      try {
+        localStorage.setItem(RECS_DISMISS_KEY, JSON.stringify(list.slice(-300)));
+      } catch (e) {}
+      renderRecs();
+    };
+    card.append(
+      cover,
+      el(
+        "div",
+        { className: "rec-body" },
+        el("div", { className: "title" }, b.title),
+        el("div", { className: "author" }, (b.authors || []).join(", ")),
+        el("div", { className: "rec-reason" }, it.reason),
+        el("div", { className: "rec-actions" }, add, no)
+      )
+    );
+    return card;
+  });
+  box.replaceChildren(el("h3", {}, "Für dich"), el("div", { className: "recs-row" }, ...cards));
+}
 
 async function renderProfile() {
   renderPrefs();

@@ -1003,3 +1003,16 @@ html:has(body.auth-mode) { overflow: hidden; }
 .suggest-item:last-child { border-bottom: 0; }
 .suggest .meta { padding: 10px 12px; margin: 0; }
 .suggest-item .meta { padding: 0; display: inline; }
+
+/* Buchempfehlungen "Für dich" */
+.recs { margin: 18px 0 8px; }
+.recs h3 { margin: 0 0 4px; font-size: 1.1rem; }
+.recs-row { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 8px 2px 12px; -webkit-overflow-scrolling: touch; }
+.rec { flex: 0 0 min(300px, 86%); scroll-snap-align: start; display: flex; gap: 12px; background: var(--card); border-radius: 12px; padding: 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.rec-cover { flex: 0 0 76px; border: 0; background: none; padding: 0; cursor: pointer; align-self: flex-start; }
+.rec-cover img, .rec-cover .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 6px; display: block; }
+.rec-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rec-body .title { font-weight: 600; font-size: 0.95rem; overflow-wrap: anywhere; }
+.rec-body .author { font-size: 0.8rem; color: var(--muted); }
+.rec-reason { font-size: 0.8rem; color: var(--text2); margin-top: 2px; }
+.rec-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 8px; }
