@@ -2858,7 +2858,7 @@ function renderShelf(container, items, kind, readOnly, emptyText) {
 
 // ---------- Vorlieben (Lieblingsautoren, Interessen & Genres) ----------
 
-const PREF_GENRES = ["Fantasy", "Romantasy", "Krimi", "Thriller", "Liebesroman", "Historischer Roman", "Science-Fiction", "Klassiker", "Young Adult", "Sachbuch", "Biografie", "Humor", "Horror", "Dystopie", "Cozy", "Hörbuch"];
+const PREF_GENRES = ["Fantasy", "Romantasy", "Krimi", "Thriller", "Liebesroman", "Historischer Roman", "Science-Fiction", "Klassiker", "Young Adult", "Sachbuch", "Biografie", "Humor", "Horror", "Dystopie", "Dark Romance", "Mythologie", "Psychothriller", "Abenteuer"];
 
 const prefKey = (s) => s.trim().toLocaleLowerCase("de");
 
@@ -2926,9 +2926,124 @@ function addPref(inputId, field) {
   input.value = "";
   savePrefs(field === "authors" ? [...authors, value] : authors, field === "authors" ? interests : [...interests, value]);
 }
+// Autorensuche: gleicht die Eingabe mit Open Library und deinen Büchern ab, damit Namen richtig geschrieben sind
+const normName = (s) => s.toLocaleLowerCase("de").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+function editRatio(x, y) {
+  if (!x.length && !y.length) return 1;
+  let prev = Array.from({ length: y.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= x.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= y.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return 1 - prev[y.length] / Math.max(x.length, y.length);
+}
+function nameScore(query, name) {
+  const q = normName(query), n = normName(name);
+  if (!q || !n) return 0;
+  if (n === q) return 1;
+  const full = editRatio(q, n);
+  const qt = q.split(" "), nt = n.split(" ");
+  const tok = qt.reduce((s, t) => s + Math.max(...nt.map((u) => (u.startsWith(t) && t.length >= 2 ? 0.95 : editRatio(t, u)))), 0) / qt.length;
+  return Math.max(full, tok * 0.97);
+}
+let authorSuggestions = [];
+let authorSeq = 0;
+let authorTimer = null;
+function localAuthors() {
+  const set = new Set();
+  for (const b of [...myLibrary, ...(buddy.friendLib || [])]) for (const n of b.authors || []) set.add(n);
+  return [...set];
+}
+function renderAuthorSuggest(query, remoteDone) {
+  const box = $("pref-author-suggest");
+  const have = new Set((me.favorite_authors || []).map(prefKey));
+  const q = query.trim();
+  if (q.length < 2) {
+    box.hidden = true;
+    authorSuggestions = [];
+    return;
+  }
+  const rows = authorSuggestions.filter((s) => !have.has(prefKey(s.name))).slice(0, 6);
+  box.replaceChildren(
+    ...rows.map((s) => {
+      const b = el("button", { className: "suggest-item", type: "button" }, s.name, s.top ? el("span", { className: "meta" }, " · " + s.top) : "");
+      b.onclick = () => chooseAuthor(s.name);
+      return b;
+    })
+  );
+  if (!rows.length) {
+    if (remoteDone) {
+      const keep = el("button", { className: "suggest-item", type: "button" }, `Nichts gefunden. „${q}“ trotzdem übernehmen`);
+      keep.onclick = () => chooseAuthor(q);
+      box.replaceChildren(keep);
+    } else {
+      box.replaceChildren(el("div", { className: "meta" }, "Suche …"));
+    }
+  }
+  box.hidden = false;
+}
+function chooseAuthor(name) {
+  $("pref-author-input").value = "";
+  $("pref-author-suggest").hidden = true;
+  authorSuggestions = [];
+  const authors = me.favorite_authors || [];
+  if (authors.some((x) => prefKey(x) === prefKey(name))) return;
+  if (authors.length >= 40) {
+    $("pref-status").textContent = "Das sind schon genug Einträge.";
+    return;
+  }
+  savePrefs([...authors, name], me.interests || []);
+}
+async function searchAuthors(query) {
+  const seq = ++authorSeq;
+  const q = query.trim();
+  const words = q.split(/\s+/).filter(Boolean);
+  const found = new Map();
+  const add = (name, top) => {
+    if (!name) return;
+    const s = nameScore(q, name);
+    if (s < 0.6) return;
+    const k = prefKey(name);
+    if (!found.has(k) || found.get(k).score < s) found.set(k, { name, top, score: s });
+  };
+  for (const n of localAuthors()) add(n, "");
+  const publish = (done) => {
+    if (seq !== authorSeq) return;
+    authorSuggestions = [...found.values()].sort((x, y) => y.score - x.score);
+    renderAuthorSuggest(q, done);
+  };
+  publish(false);
+  const queries = [q, words.map((w) => w + "~").join(" "), words[words.length - 1] + "*"];
+  try {
+    const results = await Promise.all(
+      queries.map((term) =>
+        fetch(`https://openlibrary.org/search/authors.json?limit=12&q=${encodeURIComponent(term)}`)
+          .then((r) => (r.ok ? r.json() : { docs: [] }))
+          .catch(() => ({ docs: [] }))
+      )
+    );
+    for (const res of results) for (const d of res.docs || []) add(d.name, d.top_work || "");
+  } catch (e) {}
+  publish(true);
+}
+$("pref-author-input").oninput = () => {
+  clearTimeout(authorTimer);
+  const v = $("pref-author-input").value;
+  if (v.trim().length < 2) {
+    authorSeq++;
+    renderAuthorSuggest(v, false);
+    return;
+  }
+  authorTimer = setTimeout(() => searchAuthors(v), 300);
+};
 $("pref-author-form").onsubmit = (e) => {
   e.preventDefault();
-  addPref("pref-author-input", "authors");
+  const v = $("pref-author-input").value.trim();
+  if (!v) return;
+  const best = authorSuggestions.find((s) => !(me.favorite_authors || []).some((x) => prefKey(x) === prefKey(s.name)));
+  if (best && best.score >= 0.75) chooseAuthor(best.name);
+  else searchAuthors(v);
 };
 $("pref-interest-form").onsubmit = (e) => {
   e.preventDefault();

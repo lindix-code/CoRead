@@ -997,3 +997,9 @@ html:has(body.auth-mode) { overflow: hidden; }
 .chip-x { border: 0; background: none; color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 0 0 0 2px; cursor: pointer; }
 .pref-add { display: flex; gap: 8px; align-items: stretch; }
 .pref-add input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 1rem; }
+
+.suggest { margin-top: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); overflow: hidden; }
+.suggest-item { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--hair); background: transparent; color: var(--text); font: inherit; padding: 10px 12px; cursor: pointer; }
+.suggest-item:last-child { border-bottom: 0; }
+.suggest .meta { padding: 10px 12px; margin: 0; }
+.suggest-item .meta { padding: 0; display: inline; }
