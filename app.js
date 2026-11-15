@@ -190,18 +190,21 @@ function bookToDb(book) {
 async function fetchLibrary(userId) {
   const { data, error } = await sb
     .from("library_entries")
-    .select("status, owned, audiobook, started_at, finished_at, custom_cover, progress_page, progress_mode, progress_chapter, chapters_total, progress_percent, pages_total, rating, books(*)")
+    .select("status, owned, audiobook, started_at, finished_at, custom_cover, custom_title, progress_page, progress_mode, progress_chapter, chapters_total, progress_percent, pages_total, rating, books(*)")
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
   if (error) throw error;
   return data.map((r) => ({
     ...dbToBook(r.books),
+    title: r.custom_title || r.books.title, // eigener Titel hat Vorrang
+    originalTitle: r.books.title,
     pages: r.pages_total || r.books.pages, // eigene Seitenzahl hat Vorrang
     catalogPages: r.books.pages,
     cover: r.custom_cover || r.books.cover,
     originalCover: r.books.cover,
     entry: {
       customCover: r.custom_cover,
+      customTitle: r.custom_title,
       status: r.status,
       owned: r.owned,
       audiobook: r.audiobook,
@@ -227,6 +230,7 @@ async function saveEntry(book, entry) {
 
   // Fortschritts-Varianten nur schreiben, wenn sie mitgegeben werden (sonst bleiben die Werte erhalten)
   const extra = {};
+  if (entry.customTitle !== undefined) extra.custom_title = entry.customTitle || null;
   if (entry.progressMode !== undefined) extra.progress_mode = entry.progressMode;
   if (entry.progressChapter !== undefined) extra.progress_chapter = entry.progressChapter;
   if (entry.chaptersTotal !== undefined) extra.chapters_total = entry.chaptersTotal;
@@ -540,7 +544,7 @@ function showDetail(book, readOnly = false, preset = null) {
   const mine = myLibrary.find((b) => b.id === book.id);
   const entry = readOnly ? book.entry : mine && mine.entry;
   // Eigenes Cover der Bibliothek zeigen, auch wenn das Buch aus der Suche kommt
-  if (!readOnly && mine) book = { ...book, cover: mine.cover, originalCover: mine.originalCover };
+  if (!readOnly && mine) book = { ...book, cover: mine.cover, originalCover: mine.originalCover, title: mine.title, originalTitle: mine.originalTitle };
   let customCover = entry ? entry.customCover || null : null;
   const coverSlot = el("div", { className: "cover-slot" }, coverElement(book));
 
@@ -686,6 +690,17 @@ function showDetail(book, readOnly = false, preset = null) {
     };
     coverSlot.append(el("div", { className: "cover-actions" }, uploadBtn, resetBtn, fileInput), coverMsg);
 
+    // Eigener Titel (nur für dein Regal; leer = Originaltitel)
+    const origTitle = book.originalTitle || book.title;
+    const titleInput = el("input", { type: "text", maxLength: 200, value: book.title, placeholder: origTitle });
+    titleInput.setAttribute("aria-label", "Titel");
+    titleInput.oninput = () => (quickSave.hidden = false);
+    const titleField = el("div", { className: "field" }, "Titel (nur für dich)", titleInput);
+    const readTitle = () => {
+      const t = titleInput.value.trim();
+      return t && t !== origTitle ? t : null;
+    };
+
     const saveBtn = el("button", { className: "btn", type: "button" }, entry ? "Speichern" : "Zur Bibliothek");
     const msg = el("p", { role: "status", className: "meta" });
 
@@ -732,6 +747,7 @@ function showDetail(book, readOnly = false, preset = null) {
           startedAt,
           finishedAt,
           customCover,
+          customTitle: readTitle(),
           pagesTotal: $("f-pages").value !== "" ? Math.max(1, Math.round(Number($("f-pages").value))) : null,
           chaptersTotal: $("f-chapters").value !== "" ? Math.max(1, Math.round(Number($("f-chapters").value))) : null,
           progress: status === "reading" && $("f-progress").value !== "" ? Number($("f-progress").value) : null,
@@ -772,7 +788,7 @@ function showDetail(book, readOnly = false, preset = null) {
       };
       actions.append(removeBtn);
     }
-    content.append(statusField, startedField, finishedField, ownedField, audioField, progressField, pagesField, chaptersField, ratingField, actions, msg, quickSave);
+    content.append(titleField, statusField, startedField, finishedField, ownedField, audioField, progressField, pagesField, chaptersField, ratingField, actions, msg, quickSave);
   }
 
   $("detail-content").replaceChildren(content);
