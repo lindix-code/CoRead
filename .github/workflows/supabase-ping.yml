@@ -1,0 +1,23 @@
+# Hält das kostenlose Supabase-Projekt aktiv (sonst wird es nach einer Woche ohne Nutzung pausiert).
+# Läuft montags und donnerstags und lässt sich im Reiter "Actions" auch per Hand starten.
+name: Supabase wachhalten
+
+on:
+  schedule:
+    - cron: "17 5 * * 1,4"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Datenbank anpingen
+        run: |
+          # Es werden nur die öffentlichen Zugangsdaten aus config.js verwendet (kein Geheimnis)
+          URL=$(grep -oP 'SUPABASE_URL\s*=\s*"\K[^"]+' config.js)
+          KEY=$(grep -oP 'SUPABASE_KEY\s*=\s*"\K[^"]+' config.js)
+          curl --fail --silent --show-error --max-time 30 \
+            -H "apikey: $KEY" \
+            "$URL/rest/v1/books?select=id&limit=1" > /dev/null
+          echo "Supabase hat geantwortet."
