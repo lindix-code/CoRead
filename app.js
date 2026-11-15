@@ -3434,7 +3434,7 @@ function renderRecs() {
     );
     return card;
   });
-  box.replaceChildren(el("h3", {}, "Für dich"), el("div", { className: "recs-row" }, ...cards));
+  box.replaceChildren(el("h3", {}, "Das könnte dir auch gefallen:"), el("div", { className: "recs-row" }, ...cards));
 }
 
 async function renderProfile() {
