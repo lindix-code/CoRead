@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=47">
+  <link rel="stylesheet" href="style.css?v=48">
   <link id="fav-link" rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link id="touch-link" rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -100,20 +100,6 @@
         <h2 id="profile-title">Mein Profil</h2>
       </div>
 
-      <div class="shelf-section">
-        <div class="shelf-head"><h3>Absolute Lieblingsbücher</h3><button class="shelf-add" type="button" data-kind="favorite" aria-label="Lieblingsbuch hinzufügen">+</button></div>
-        <div id="shelf-favorite" class="pslides"></div>
-      </div>
-      <div class="shelf-section">
-        <div class="shelf-head"><h3 id="rec-title">Buchempfehlung</h3><button class="shelf-add" type="button" data-kind="recommendation" aria-label="Buchempfehlung hinzufügen">+</button></div>
-        <div id="shelf-recommendation" class="pslides"></div>
-      </div>
-      <div class="shelf-section">
-        <div class="shelf-head"><h3>Ausgeliehen</h3><button class="shelf-add" type="button" data-kind="borrowed" aria-label="Ausgeliehenes Buch hinzufügen">+</button></div>
-        <p class="meta">Nur für dich sichtbar, als Erinnerung.</p>
-        <div id="shelf-borrowed" class="pslides"></div>
-      </div>
-
       <div class="shelf-section" id="prefs">
         <div class="shelf-head"><h3>Meine Vorlieben</h3></div>
         <p class="meta">Daraus entstehen später deine Buchempfehlungen.</p>
@@ -137,6 +123,21 @@
         </div>
         <p id="pref-status" class="meta" role="status"></p>
       </div>
+
+      <div class="shelf-section">
+        <div class="shelf-head"><h3>Absolute Lieblingsbücher</h3><button class="shelf-add" type="button" data-kind="favorite" aria-label="Lieblingsbuch hinzufügen">+</button></div>
+        <div id="shelf-favorite" class="pslides"></div>
+      </div>
+      <div class="shelf-section" hidden>
+        <div class="shelf-head"><h3 id="rec-title">Buchempfehlung</h3><button class="shelf-add" type="button" data-kind="recommendation" aria-label="Buchempfehlung hinzufügen">+</button></div>
+        <div id="shelf-recommendation" class="pslides"></div>
+      </div>
+      <div class="shelf-section">
+        <div class="shelf-head"><h3>Ausgeliehen</h3><button class="shelf-add" type="button" data-kind="borrowed" aria-label="Ausgeliehenes Buch hinzufügen">+</button></div>
+        <p class="meta">Nur für dich sichtbar, als Erinnerung.</p>
+        <div id="shelf-borrowed" class="pslides"></div>
+      </div>
+
     </section>
 
     <!-- Buddy Read: Kommentare -->
@@ -273,7 +274,7 @@
           <div class="shelf-head"><h3 id="friend-fav-title">Lieblingsbücher</h3></div>
           <div id="friend-shelf-favorite" class="pslides"></div>
         </div>
-        <div class="shelf-section">
+        <div class="shelf-section" hidden>
           <div class="shelf-head"><h3 id="friend-rec-title">Empfehlungen</h3></div>
           <div id="friend-shelf-recommendation" class="pslides"></div>
         </div>
@@ -394,6 +395,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=45"></script>
+  <script src="app.js?v=46"></script>
 </body>
 </html>
