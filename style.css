@@ -978,3 +978,7 @@ input[type="checkbox"]:checked {
   border-color: var(--accent);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232d2e34' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
+
+/* Lange Wörter im Titel dürfen umbrechen statt über die Kachel zu laufen */
+.card { min-width: 0; overflow: hidden; }
+.card .title, .card .author, .card .meta { overflow-wrap: anywhere; hyphens: auto; }
