@@ -986,3 +986,14 @@ input[type="checkbox"]:checked {
 /* Desktop: Scrollleiste immer reservieren, damit das Menüband beim Seitenwechsel nicht hin und her springt */
 html { overflow-y: scroll; scrollbar-gutter: stable; }
 html:has(body.auth-mode) { overflow: hidden; }
+
+/* Vorlieben */
+.pref-block { margin: 14px 0; }
+.pref-label { font-weight: 600; margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 16px; padding: 5px 11px; font: inherit; font-size: 0.85rem; }
+.chip.toggle { cursor: pointer; }
+.chip.toggle.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.chip-x { border: 0; background: none; color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 0 0 0 2px; cursor: pointer; }
+.pref-add { display: flex; gap: 8px; align-items: stretch; }
+.pref-add input { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 1rem; }

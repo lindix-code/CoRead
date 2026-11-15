@@ -2856,7 +2856,87 @@ function renderShelf(container, items, kind, readOnly, emptyText) {
   container.replaceChildren(...list.map((i) => slideCard(i, readOnly)));
 }
 
+// ---------- Vorlieben (Lieblingsautoren, Interessen & Genres) ----------
+
+const PREF_GENRES = ["Fantasy", "Romantasy", "Krimi", "Thriller", "Liebesroman", "Historischer Roman", "Science-Fiction", "Klassiker", "Young Adult", "Sachbuch", "Biografie", "Humor", "Horror", "Dystopie", "Cozy", "Hörbuch"];
+
+const prefKey = (s) => s.trim().toLocaleLowerCase("de");
+
+async function savePrefs(authors, interests) {
+  const status = $("pref-status");
+  const { error } = await sb.from("profiles").update({ favorite_authors: authors, interests }).eq("id", me.id);
+  if (error) {
+    status.textContent = "Konnte nicht gespeichert werden: " + error.message;
+    return false;
+  }
+  me.favorite_authors = authors;
+  me.interests = interests;
+  status.textContent = "";
+  renderPrefs();
+  return true;
+}
+
+function prefChip(text, onRemove) {
+  const chip = el("span", { className: "chip" }, text);
+  if (onRemove) {
+    const x = el("button", { className: "chip-x", type: "button" }, "×");
+    x.setAttribute("aria-label", text + " entfernen");
+    x.onclick = onRemove;
+    chip.append(x);
+  }
+  return chip;
+}
+
+function renderPrefs() {
+  const authors = me.favorite_authors || [];
+  const interests = me.interests || [];
+  $("pref-authors").replaceChildren(...authors.map((n) => prefChip(n, () => savePrefs(authors.filter((x) => x !== n), interests))));
+  const have = new Set(interests.map(prefKey));
+  $("pref-genres").replaceChildren(
+    ...PREF_GENRES.map((g) => {
+      const on = have.has(prefKey(g));
+      const b = el("button", { className: "chip toggle" + (on ? " on" : ""), type: "button" }, g);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.onclick = () => savePrefs(authors, on ? interests.filter((x) => prefKey(x) !== prefKey(g)) : [...interests, g]);
+      return b;
+    })
+  );
+  const presets = new Set(PREF_GENRES.map(prefKey));
+  $("pref-custom").replaceChildren(
+    ...interests.filter((x) => !presets.has(prefKey(x))).map((n) => prefChip(n, () => savePrefs(authors, interests.filter((x) => x !== n))))
+  );
+}
+
+function addPref(inputId, field) {
+  const input = $(inputId);
+  const value = input.value.trim().replace(/\s+/g, " ");
+  if (!value) return;
+  const authors = me.favorite_authors || [];
+  const interests = me.interests || [];
+  const list = field === "authors" ? authors : interests;
+  if (list.some((x) => prefKey(x) === prefKey(value))) {
+    input.value = "";
+    return;
+  }
+  const limit = field === "authors" ? 40 : 60;
+  if (list.length >= limit) {
+    $("pref-status").textContent = "Das sind schon genug Einträge.";
+    return;
+  }
+  input.value = "";
+  savePrefs(field === "authors" ? [...authors, value] : authors, field === "authors" ? interests : [...interests, value]);
+}
+$("pref-author-form").onsubmit = (e) => {
+  e.preventDefault();
+  addPref("pref-author-input", "authors");
+};
+$("pref-interest-form").onsubmit = (e) => {
+  e.preventDefault();
+  addPref("pref-interest-input", "interests");
+};
+
 async function renderProfile() {
+  renderPrefs();
   const nick = friendNick || "deine Freundin";
   $("rec-title").textContent = friend ? `Buchempfehlung für ${nick}` : "Buchempfehlung";
   try {
@@ -2879,6 +2959,12 @@ async function renderFriendShelves() {
   const nick = friendNick || friend.display_name;
   $("friend-fav-title").textContent = `${nick}s Lieblingsbücher`;
   $("friend-rec-title").textContent = `Empfehlungen von ${nick}`;
+  const fa = friend.favorite_authors || [];
+  const fi = friend.interests || [];
+  $("friend-prefs").hidden = !fa.length && !fi.length;
+  $("friend-prefs-title").textContent = `Vorlieben von ${nick}`;
+  $("friend-pref-authors").replaceChildren(...fa.map((n) => prefChip(n)));
+  $("friend-pref-interests").replaceChildren(...fi.map((n) => prefChip(n)));
   try {
     friendProfileBooks = await fetchProfileBooks(friend.id);
   } catch (err) {

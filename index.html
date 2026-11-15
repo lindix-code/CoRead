@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=45">
+  <link rel="stylesheet" href="style.css?v=46">
   <link id="fav-link" rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link id="touch-link" rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -112,6 +112,29 @@
         <div class="shelf-head"><h3>Ausgeliehen</h3><button class="shelf-add" type="button" data-kind="borrowed" aria-label="Ausgeliehenes Buch hinzufügen">+</button></div>
         <p class="meta">Nur für dich sichtbar, als Erinnerung.</p>
         <div id="shelf-borrowed" class="pslides"></div>
+      </div>
+
+      <div class="shelf-section" id="prefs">
+        <div class="shelf-head"><h3>Meine Vorlieben</h3></div>
+        <p class="meta">Daraus entstehen später deine Buchempfehlungen.</p>
+        <div class="pref-block">
+          <div class="pref-label">Lieblingsautoren</div>
+          <div id="pref-authors" class="chips"></div>
+          <form id="pref-author-form" class="pref-add">
+            <input id="pref-author-input" type="text" maxlength="60" placeholder="Autor oder Autorin" autocomplete="off">
+            <button class="btn" type="submit">Hinzufügen</button>
+          </form>
+        </div>
+        <div class="pref-block">
+          <div class="pref-label">Interessen &amp; Genres</div>
+          <div id="pref-genres" class="chips"></div>
+          <div id="pref-custom" class="chips"></div>
+          <form id="pref-interest-form" class="pref-add">
+            <input id="pref-interest-input" type="text" maxlength="60" placeholder="Eigenes Stichwort, z. B. Drachen" autocomplete="off">
+            <button class="btn" type="submit">Hinzufügen</button>
+          </form>
+        </div>
+        <p id="pref-status" class="meta" role="status"></p>
       </div>
     </section>
 
@@ -253,6 +276,11 @@
           <div class="shelf-head"><h3 id="friend-rec-title">Empfehlungen</h3></div>
           <div id="friend-shelf-recommendation" class="pslides"></div>
         </div>
+        <div class="shelf-section" id="friend-prefs" hidden>
+          <div class="shelf-head"><h3 id="friend-prefs-title">Vorlieben</h3></div>
+          <div id="friend-pref-authors" class="chips"></div>
+          <div id="friend-pref-interests" class="chips"></div>
+        </div>
       </div>
     </section>
   </main>
@@ -365,6 +393,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=43"></script>
+  <script src="app.js?v=44"></script>
 </body>
 </html>
