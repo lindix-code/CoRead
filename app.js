@@ -3738,10 +3738,16 @@ setTimeout(() => {
 
 // Farbwelt (Petrol / Dunkel / Flieder hell / Flieder dunkel)
 const THEMES = {
-  petrol: { bar: "#345457", flieder: false },
-  dark: { bar: "#345457", flieder: false },
-  "flieder-hell": { bar: "#44435d", flieder: true },
-  "flieder-dunkel": { bar: "#44435d", flieder: true },
+  petrol: { bar: "#345457", set: "petrol" },
+  dark: { bar: "#345457", set: "petrol" },
+  "flieder-hell": { bar: "#44435d", set: "flieder" },
+  "flieder-dunkel": { bar: "#44435d", set: "flieder" },
+  pastel: { bar: "#866886", set: "pastel" },
+};
+const THEME_ASSETS = {
+  petrol: { fav: "assets/favicon-32.png?v=2", touch: "assets/apple-touch-icon.png?v=2", book: "assets/header-book.png", word: "assets/header-bookclub.png" },
+  flieder: { fav: "assets/favicon-flieder-32.png?v=1", touch: "assets/apple-touch-icon-flieder.png?v=1", book: "assets/header-book-flieder.png?v=1", word: "assets/header-bookclub.png" },
+  pastel: { fav: "assets/favicon-pastel-32.png?v=1", touch: "assets/apple-touch-icon-pastel.png?v=1", book: "assets/header-book-pastel.png?v=1", word: "assets/header-bookclub-pastel.png?v=1" },
 };
 function applyTheme(t) {
   if (!THEMES[t]) t = "petrol";
@@ -3754,11 +3760,12 @@ function applyTheme(t) {
     b.setAttribute("aria-pressed", on ? "true" : "false");
   });
   const meta = $("theme-meta"); if (meta) meta.setAttribute("content", THEMES[t].bar);
-  const f = THEMES[t].flieder;
-  const fav = $("fav-link"), touch = $("touch-link");
-  if (fav) fav.setAttribute("href", f ? "assets/favicon-flieder-32.png?v=1" : "assets/favicon-32.png?v=2");
-  const li = $("logo-img"); if (li) li.setAttribute("src", f ? "assets/header-book-flieder.png?v=1" : "assets/header-book.png");
-  if (touch) touch.setAttribute("href", f ? "assets/apple-touch-icon-flieder.png?v=1" : "assets/apple-touch-icon.png?v=2");
+  const set = THEME_ASSETS[THEMES[t].set];
+  const fav = $("fav-link"), touch = $("touch-link"), li = $("logo-img"), lw = $("logo-word");
+  if (fav) fav.setAttribute("href", set.fav);
+  if (touch) touch.setAttribute("href", set.touch);
+  if (li) li.setAttribute("src", set.book);
+  if (lw) lw.setAttribute("src", set.word);
 }
 document.querySelectorAll("[data-theme-pick]").forEach((b) => { b.onclick = () => applyTheme(b.dataset.themePick); });
 applyTheme(document.documentElement.getAttribute("data-theme") || "petrol");

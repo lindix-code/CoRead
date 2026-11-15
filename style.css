@@ -30,8 +30,17 @@
   --tint-fresh: rgba(228, 188, 127, 0.16); --tint-own: rgba(201, 201, 222, 0.14); --tint-auto: rgba(228, 188, 127, 0.1); --tint-toggle: rgba(201, 201, 222, 0.14);
   color-scheme: dark;
 }
+/* Pastel */
+:root[data-theme="pastel"] {
+  --primary: #866886; --mint: #aabcaf;
+  --bg: #f6f0e8; --card: #fff; --text: #2d2e34; --text2: #4f4f58; --muted: #6e6e78;
+  --line: #ddd3d9; --surface2: #ebe4e8; --hair: #eee8ec; --gold-text: #8a6a2f;
+  --tint-fresh: #faf1e3; --tint-own: #e9eff0; --tint-auto: #f6ecdc; --tint-toggle: #e8eeee;
+}
 :root[data-theme="flieder-hell"] #splash::before,
 :root[data-theme="flieder-dunkel"] #splash::before { background-image: url("assets/splash-flieder.jpg"); }
+:root[data-theme="pastel"] #splash::before { background-image: url("assets/splash-pastel.jpg"); }
+:root[data-theme="pastel"] #splash { background: #ad91a9; }
 :root[data-theme="flieder-hell"] #splash,
 :root[data-theme="flieder-dunkel"] #splash { background: #44435d; }
 
@@ -1019,3 +1028,8 @@ html:has(body.auth-mode) { overflow: hidden; }
 
 #rec-dialog textarea { width: 100%; box-sizing: border-box; margin-top: 12px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; resize: vertical; }
 #rec-dialog .chips { margin-top: 6px; }
+
+/* Pastel: Anmeldung auf Mauve, dunkle Schrift für guten Kontrast */
+:root[data-theme="pastel"] body.auth-mode { background: #ad91a9; }
+:root[data-theme="pastel"] body.auth-mode #auth-status { color: #3e2a3c; }
+:root[data-theme="pastel"] body.auth-mode #btn-signup { color: #3e2a3c; border-color: #3e2a3c; }
