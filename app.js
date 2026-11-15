@@ -418,10 +418,18 @@ function coverElement(book) {
   return img;
 }
 
-function entryLine(book) {
+function entryLine(book, listKey) {
   const e = book.entry;
   if (!e) return "";
   const parts = [];
+  if (listKey === "shelf") {
+    // Im Bücherregal stehen alle Bücher im Regal: nur gelesen / ungelesen anzeigen
+    if (e.status === "read") parts.push("Gelesen");
+    else if (e.status === "reading") parts.push("Lese ich gerade" + (e.progress != null ? (book.pages ? ` (S. ${e.progress}/${book.pages})` : ` (S. ${e.progress})`) : ""));
+    else parts.push("Ungelesen");
+    if (e.rating) parts.push("★".repeat(e.rating));
+    return parts.join(" · ");
+  }
   if (e.status) {
     let text = STATUS[e.status];
     if (e.status === "reading" && e.progress != null) {
@@ -429,7 +437,7 @@ function entryLine(book) {
     }
     parts.push(text);
   }
-  if (e.owned) parts.push("Im Regal");
+  if (e.owned && listKey !== "unread") parts.push("Im Regal");
   if (e.rating) parts.push("★".repeat(e.rating));
   return parts.join(" · ");
 }
@@ -444,22 +452,22 @@ function audioBadge(book) {
   return badge;
 }
 
-function bookCard(book, readOnly) {
+function bookCard(book, readOnly, listKey) {
   const card = el("button", { className: "card", type: "button" });
   card.append(
     coverElement(book),
     el("div", { className: "title" }, book.title),
     el("div", { className: "author" }, book.authors.join(", "))
   );
-  const line = entryLine(book);
+  const line = entryLine(book, listKey);
   if (line) card.append(el("div", { className: "meta" }, line));
   card.append(audioBadge(book));
   card.onclick = () => showDetail(book, readOnly);
   return card;
 }
 
-function renderGrid(container, books, readOnly = false) {
-  container.replaceChildren(...books.map((b) => bookCard(b, readOnly)));
+function renderGrid(container, books, readOnly = false, listKey = null) {
+  container.replaceChildren(...books.map((b) => bookCard(b, readOnly, listKey)));
 }
 
 function fact(label, value) {
@@ -910,7 +918,7 @@ function renderLists(books, readOnly) {
       ? `${who}Keine Treffer in „${label}“.`
       : `${who}Noch nichts in „${label}“.`;
   }
-  renderGrid($("library"), shown, readOnly);
+  renderGrid($("library"), shown, readOnly, libList);
 }
 
 // Vorbelegung je Liste beim Hinzufügen über "+"
