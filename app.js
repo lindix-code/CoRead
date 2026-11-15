@@ -3117,25 +3117,85 @@ function openRecFeedback(item) {
     );
   };
   draw();
-  send.onclick = async () => {
-    if (!reason) return;
-    send.disabled = true;
+  // Ähnliche Bücher aus meinem Regal (für "Habe ich schon gelesen": evtl. steht es dort unter anderem Namen)
+  const similarOwned = () => {
+    const ct = coreTitle(b.title);
+    const words = new Set(ct.split(" ").filter((w) => w.length > 2));
+    const score = (m) => {
+      const t = [m.title, m.originalTitle].filter(Boolean).map(coreTitle);
+      const ratio = Math.max(...t.map((x) => editRatio(x, ct)));
+      const mw = new Set(t.join(" ").split(" ").filter((w) => w.length > 2));
+      const inter = [...words].filter((w) => mw.has(w)).length;
+      const jac = words.size && mw.size ? inter / Math.min(words.size, mw.size) : 0;
+      return Math.max(ratio, jac * 0.9);
+    };
+    return myLibrary
+      .map((m) => ({ m, s: score(m), same: (m.authors || []).some((x) => (b.authors || []).some((y) => sameAuthor(x, y))) }))
+      .filter((x) => (x.same ? x.s >= 0.3 : x.s >= 0.7))
+      .sort((x, y) => y.s - x.s)
+      .slice(0, 4);
+  };
+  const store = async (extra) => {
+    const userNote = note.value.trim();
     const row = {
       book_key: recBookKey(b),
       title: b.title,
       authors: b.authors || [],
       source: item.src || null,
       category: reason,
-      note: note.value.trim() || null,
+      note: [userNote, extra].filter(Boolean).join(" | ").slice(0, 500) || null,
       block_author: reason === "Interessiert mich nicht" && blockBox.checked,
     };
     const { error } = await sb.from("rec_feedback").insert(row);
     if (error) {
       msg.textContent = "Konnte nicht gespeichert werden: " + error.message;
+      return false;
+    }
+    recFeedback.push(row);
+    return true;
+  };
+  send.onclick = async () => {
+    if (!reason) return;
+    send.disabled = true;
+    if (reason === "Habe ich schon gelesen") {
+      const cands = similarOwned();
+      if (cands.length) {
+        // Zweiter Schritt: steht es evtl. schon im Regal?
+        const rows = cands.map(({ m }) => {
+          const r = el("button", { className: "suggest-item", type: "button" }, m.title, el("span", { className: "meta" }, ` · ${(m.authors || []).join(", ")}`));
+          r.onclick = async () => {
+            if (!(await store(`Steht schon im Regal als: ${m.title}`))) return;
+            $("rec-dialog").close();
+            renderRecs();
+            showDetail(m);
+          };
+          return r;
+        });
+        const fresh = el("button", { className: "btn", type: "button" }, "Nein, noch nicht in meiner Bibliothek");
+        fresh.onclick = async () => {
+          fresh.disabled = true;
+          if (!(await store(""))) {
+            fresh.disabled = false;
+            return;
+          }
+          $("rec-dialog").close();
+          renderRecs();
+          showDetail(b, false, { status: "read" });
+        };
+        $("rec-content").replaceChildren(
+          el("p", { className: "meta" }, `${b.title} · ${(b.authors || []).join(", ")}`),
+          el("div", { className: "pref-label" }, "Steht das Buch schon in deinem Regal?"),
+          el("div", { className: "suggest" }, ...rows),
+          el("div", { className: "actions" }, fresh),
+          msg
+        );
+        return;
+      }
+    }
+    if (!(await store(""))) {
       send.disabled = false;
       return;
     }
-    recFeedback.push(row);
     $("rec-dialog").close();
     renderRecs();
     if (reason === "Habe ich schon gelesen") showDetail(b, false, { status: "read" });
