@@ -732,7 +732,7 @@ header h1 .logo-book { color: var(--accent); flex-shrink: 0; }
   padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
   box-shadow: 0 -1px 6px rgba(0, 0, 0, 0.15);
 }
-.bottom-nav .tab { border: 0; border-radius: 18px; padding: 9px 16px; line-height: 0; color: var(--mint); }
+.bottom-nav .tab { border: 0; border-radius: 18px; padding: 9px 12px; line-height: 0; color: var(--mint); }
 .bottom-nav .tab.active { color: var(--accent); background: rgba(228, 188, 127, 0.18); }
 main { padding-bottom: 96px; }
 #logout { margin-top: 12px; font-size: 1rem; color: var(--text); }

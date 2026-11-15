@@ -1306,7 +1306,7 @@ function renderHome() {
   $("shelf-count").textContent = owned;
 
   renderYearTile();
-  renderYearOverview();
+  renderYearOverview(); // liegt im Bookjournal, bleibt nach Änderungen aktuell
 
   $("stack-count").textContent = stackBooks().length;
 }
@@ -2588,7 +2588,7 @@ async function onSession(session) {
     $("bell").hidden = true;
     $("tab-profile").hidden = true;
     $("open-settings").hidden = true;
-    for (const id of ["view-home", "view-library", "view-feed", "view-bookclub", "view-profile", "view-friend"]) $(id).hidden = true;
+    for (const id of ["view-home", "view-library", "view-journal", "view-feed", "view-bookclub", "view-profile", "view-friend"]) $(id).hidden = true;
     return;
   }
 
@@ -2731,7 +2731,7 @@ document.addEventListener("visibilitychange", () => {
 
 // Letzte Ansicht merken: nach höchstens einer Stunde Pause öffnet die App dort wieder
 const RESUME_MS = 60 * 60 * 1000;
-const RESUMABLE = ["home", "library", "feed", "bookclub", "profile", "settings", "buddy", "friend"];
+const RESUMABLE = ["home", "library", "journal", "feed", "bookclub", "profile", "settings", "buddy", "friend"];
 function rememberView(name) {
   try {
     if (name) localStorage.setItem("coread-view", name);
@@ -2755,12 +2755,13 @@ window.addEventListener("pagehide", () => rememberView());
 function showTab(name) {
   rememberView(name);
   const navName = name === "settings" ? "profile" : name === "buddy" ? "bookclub" : name;
-  for (const n of ["home", "library", "feed", "bookclub", "profile", "settings", "buddy", "friend"]) {
+  for (const n of ["home", "library", "journal", "feed", "bookclub", "profile", "settings", "buddy", "friend"]) {
     $("view-" + n).hidden = n !== name;
     if (n !== "settings" && n !== "buddy") $("tab-" + n).classList.toggle("active", n === navName);
   }
   window.scrollTo(0, 0);
   if (name === "library") renderLibrary();
+  if (name === "journal") renderYearOverview();
   if (name === "home") renderHome();
   if (name === "profile") renderProfile();
   if (name === "settings") renderSettings();
@@ -3044,6 +3045,7 @@ $("mail-form").onsubmit = async (event) => {
   status.textContent = "Fast fertig: Schau in dein Postfach und bestätige die Änderung über den Link in der E-Mail.";
 };
 $("tab-library").onclick = () => showTab("library");
+$("tab-journal").onclick = () => showTab("journal");
 $("tab-friend").onclick = () => showTab("friend");
 $("lib-mine").onclick = () => {
   libView = "mine";
