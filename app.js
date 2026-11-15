@@ -1253,7 +1253,12 @@ function openGoalDialog() {
 $("goal-close").onclick = () => $("goal-dialog").close();
 
 function renderHome() {
-  const reading = myLibrary.filter((b) => b.entry.status === "reading");
+  // Neueste zuerst: nach Beginn-Datum absteigend (ohne Datum = frisch hinzugefügt, ganz vorn); gleiche Werte behalten die Bibliotheks-Reihenfolge
+  const reading = myLibrary
+    .filter((b) => b.entry.status === "reading")
+    .map((b, i) => ({ b, i, k: b.entry.startedAt || "9999-12-31" }))
+    .sort((x, y) => (x.k < y.k ? 1 : x.k > y.k ? -1 : x.i - y.i))
+    .map((x) => x.b);
   const hero = $("home-hero");
 
   if (!reading.length) {
@@ -2604,7 +2609,7 @@ async function onSession(session) {
     renderFriendPanel();
     refreshBell();
     syncBuddy();
-    showTab("home");
+    showTab(resumeView());
     scheduleImageOptimization();
   } catch (err) {
     $("view-auth").hidden = false;
@@ -2724,7 +2729,31 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) refreshBell();
 });
 
+// Letzte Ansicht merken: nach höchstens einer Stunde Pause öffnet die App dort wieder
+const RESUME_MS = 60 * 60 * 1000;
+const RESUMABLE = ["home", "library", "feed", "bookclub", "profile", "settings", "buddy", "friend"];
+function rememberView(name) {
+  try {
+    if (name) localStorage.setItem("coread-view", name);
+    localStorage.setItem("coread-view-ts", String(Date.now()));
+  } catch (e) {}
+}
+function resumeView() {
+  try {
+    const v = localStorage.getItem("coread-view");
+    const ts = Number(localStorage.getItem("coread-view-ts"));
+    if (v && RESUMABLE.includes(v) && ts && Date.now() - ts < RESUME_MS) return v;
+  } catch (e) {}
+  return "home";
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) rememberView();
+  else if (me && Date.now() - (Number(localStorage.getItem("coread-view-ts")) || Date.now()) >= RESUME_MS) showTab("home");
+});
+window.addEventListener("pagehide", () => rememberView());
+
 function showTab(name) {
+  rememberView(name);
   const navName = name === "settings" ? "profile" : name === "buddy" ? "bookclub" : name;
   for (const n of ["home", "library", "feed", "bookclub", "profile", "settings", "buddy", "friend"]) {
     $("view-" + n).hidden = n !== name;

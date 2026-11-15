@@ -953,7 +953,7 @@ body.auth-mode input { background: #fff; color: #2d2e34; }
 :root[data-theme="dark"] .badge-audio img,
 :root[data-theme="flieder-dunkel"] .badge-audio img { filter: brightness(0) invert(1) drop-shadow(0 0 1.5px #000); }
 /* Etwas mehr Abstand zwischen den Jahres-Reitern */
-.subtabs { gap: 10px; }
+.subtabs { gap: 10px; margin-bottom: 12px; }
 
 :root[data-theme="flieder-hell"] body.auth-mode,
 :root[data-theme="flieder-dunkel"] body.auth-mode { background: #44435d; }
