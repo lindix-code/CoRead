@@ -2455,7 +2455,7 @@ function enableRankDrag(list) {
 // [Schlüssel, Titel, Autor:in, Deckelfarbe]. Neue Titel einfach hier anhängen (keine Migration nötig).
 // Der Schlüssel wird in der Datenbank gespeichert und darf sich nicht mehr ändern.
 const CLASSICS = [
-  ["faust", "Faust", "Goethe", "#7a1f2b"],
+  ["faust", "Faust", "Goethe", "#7a1f2b", "faust.jpg"],
   ["moby-dick", "Moby Dick", "Melville", "#1f4e6b"],
   ["anna-karenina", "Anna Karenina", "Tolstoi", "#5b2a5e", "anna-karenina.jpg"],
   ["unendliche-geschichte", "Die unendliche Geschichte", "Michael Ende", "#a5530f"],
@@ -2464,15 +2464,15 @@ const CLASSICS = [
   ["stolz-und-vorurteil", "Stolz und Vorurteil", "Jane Austen", "#8a4b6b", "stolz-und-vorurteil.jpg"],
   ["reise-zum-mittelpunkt-der-erde", "Die Reise zum Mittelpunkt der Erde", "Jules Verne", "#3f5f2a"],
   ["krieg-und-frieden", "Krieg und Frieden", "Tolstoi", "#4a4a5e", "krieg-und-frieden.jpg"],
-  ["hamlet", "Hamlet", "Shakespeare", "#1e2a4a"],
+  ["hamlet", "Hamlet", "Shakespeare", "#1e2a4a", "hamlet.jpg"],
   ["wer-die-nachtigall-stoert", "Wer die Nachtigall stört", "Harper Lee", "#6b4a2b"],
   ["faenger-im-roggen", "Der Fänger im Roggen", "J. D. Salinger", "#b0402a"],
   ["die-raeuber", "Die Räuber", "Friedrich Schiller", "#5c2e1b"],
   ["great-gatsby", "The Great Gatsby", "F. Scott Fitzgerald", "#7a5c0e", "great-gatsby.jpg"],
-  ["don-quijote", "Don Quijote", "Cervantes", "#a0522d"],
+  ["don-quijote", "Don Quijote", "Cervantes", "#a0522d", "don-quijote.jpg"],
   ["jane-eyre", "Jane Eyre", "Charlotte Brontë", "#3b3f6e"],
-  ["wuthering-heights", "Wuthering Heights", "Emily Brontë", "#3e4a52"],
-  ["sommernachtstraum", "Ein Sommernachtstraum", "Shakespeare", "#4b2e83"],
+  ["wuthering-heights", "Wuthering Heights", "Emily Brontë", "#3e4a52", "wuthering-heights.jpg"],
+  ["sommernachtstraum", "Ein Sommernachtstraum", "Shakespeare", "#4b2e83", "sommernachtstraum.jpg"],
   ["mord-im-orientexpress", "Mord im Orientexpress", "Agatha Christie", "#2b2b2b"],
   ["tom-sawyer", "Die Abenteuer des Tom Sawyer", "Mark Twain", "#8a5a00"],
   ["huckleberry-finn", "Die Abenteuer des Huckleberry Finn", "Mark Twain", "#4f6f3a"],
@@ -2513,12 +2513,14 @@ function classicCard([id, title, author, color, image]) {
     // Buchdeckel als Bild (schwarz-weiß, bis ein Buch gelesen ist)
     cover.classList.add("has-img");
     const img = el("img", { src: `assets/classics/${image}?v=1`, alt: "", loading: "lazy" });
+    const text = el("div", { className: "classic-cover-text" }, el("div", { className: "t" }, title), el("div", { className: "a" }, author));
     img.onerror = () => {
       cover.classList.remove("has-img");
       img.remove();
+      text.remove();
       cover.prepend(el("div", { className: "classic-cover-title" }, title), el("div", { className: "classic-cover-author" }, author));
     };
-    cover.append(img);
+    cover.append(img, text);
   } else {
     cover.append(
       el("div", { className: "classic-cover-title" }, title),
