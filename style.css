@@ -1016,3 +1016,6 @@ html:has(body.auth-mode) { overflow: hidden; }
 .rec-body .author { font-size: 0.8rem; color: var(--muted); }
 .rec-reason { font-size: 0.8rem; color: var(--text2); margin-top: 2px; }
 .rec-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 8px; }
+
+#rec-dialog textarea { width: 100%; box-sizing: border-box; margin-top: 12px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; resize: vertical; }
+#rec-dialog .chips { margin-top: 6px; }

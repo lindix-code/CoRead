@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CoRead</title>
-  <link rel="stylesheet" href="style.css?v=49">
+  <link rel="stylesheet" href="style.css?v=50">
   <link id="fav-link" rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=2">
   <link id="touch-link" rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
   <link rel="manifest" href="manifest.webmanifest?v=2">
@@ -363,6 +363,12 @@
     </form>
   </dialog>
 
+  <dialog id="rec-dialog">
+    <button id="rec-close" class="close" aria-label="Schließen">×</button>
+    <h2>Feedback zum Vorschlag</h2>
+    <div id="rec-content"></div>
+  </dialog>
+
   <dialog id="goal-dialog">
     <button id="goal-close" class="close" aria-label="Schließen">×</button>
     <h2 id="goal-title">Meilenstein hinzufügen</h2>
@@ -396,6 +402,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=48"></script>
+  <script src="app.js?v=49"></script>
 </body>
 </html>

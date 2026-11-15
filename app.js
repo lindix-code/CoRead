@@ -3076,7 +3076,84 @@ function readJson(key, fallback) {
     return fallback;
   }
 }
-const recDismissed = () => new Set(readJson(RECS_DISMISS_KEY, []));
+let recFeedback = []; // Rückmeldungen aus der Datenbank
+let recFeedbackLoaded = false;
+async function loadRecFeedback() {
+  const { data, error } = await sb.from("rec_feedback").select("book_key, authors, block_author").eq("user_id", me.id);
+  if (!error) {
+    recFeedback = data || [];
+    recFeedbackLoaded = true;
+  }
+}
+const recDismissed = () => new Set([...readJson(RECS_DISMISS_KEY, []), ...recFeedback.map((f) => f.book_key)]);
+const recBlockedAuthors = () => new Set(recFeedback.filter((f) => f.block_author).flatMap((f) => (f.authors || []).map(normName)));
+const authorBlocked = (b, blocked) => (b.authors || []).some((x) => blocked.has(normName(x)));
+
+const RECS_REASONS = ["Falsche Sprache", "Habe ich schon gelesen", "Kein passendes Buch (z. B. wissenschaftlich)", "Interessiert mich nicht", "Anderes"];
+function openRecFeedback(item) {
+  const b = item.book;
+  let reason = null;
+  const msg = el("p", { className: "meta", role: "status" });
+  const chips = el("div", { className: "chips" });
+  const blockBox = el("input", { type: "checkbox" });
+  const blockRow = el("label", { className: "check" }, blockBox, " Auch keine weiteren Bücher dieser Autorin/dieses Autors vorschlagen");
+  blockRow.hidden = true;
+  const note = el("textarea", { rows: 3, maxLength: 500, placeholder: "Weil … (optional)" });
+  note.setAttribute("aria-label", "Anmerkung");
+  const send = el("button", { className: "btn", type: "button", disabled: true }, "Senden");
+  const draw = () => {
+    chips.replaceChildren(
+      ...RECS_REASONS.map((r) => {
+        const c = el("button", { className: "chip toggle" + (reason === r ? " on" : ""), type: "button" }, r);
+        c.setAttribute("aria-pressed", reason === r ? "true" : "false");
+        c.onclick = () => {
+          reason = r;
+          blockRow.hidden = r !== "Interessiert mich nicht";
+          send.disabled = false;
+          draw();
+        };
+        return c;
+      })
+    );
+  };
+  draw();
+  send.onclick = async () => {
+    if (!reason) return;
+    send.disabled = true;
+    const row = {
+      book_key: recBookKey(b),
+      title: b.title,
+      authors: b.authors || [],
+      source: item.src || null,
+      category: reason,
+      note: note.value.trim() || null,
+      block_author: reason === "Interessiert mich nicht" && blockBox.checked,
+    };
+    const { error } = await sb.from("rec_feedback").insert(row);
+    if (error) {
+      msg.textContent = "Konnte nicht gespeichert werden: " + error.message;
+      send.disabled = false;
+      return;
+    }
+    recFeedback.push(row);
+    $("rec-dialog").close();
+    renderRecs();
+    if (reason === "Habe ich schon gelesen") showDetail(b, false, { status: "read" });
+  };
+  const cancel = el("button", { className: "btn secondary", type: "button" }, "Abbrechen");
+  cancel.onclick = () => $("rec-dialog").close();
+  $("rec-content").replaceChildren(
+    el("p", { className: "meta" }, `${b.title} · ${(b.authors || []).join(", ")}`),
+    el("div", { className: "pref-label" }, "Was passt nicht?"),
+    chips,
+    blockRow,
+    note,
+    el("div", { className: "actions" }, send, cancel),
+    msg
+  );
+  $("rec-dialog").showModal();
+}
+$("rec-close").onclick = () => $("rec-dialog").close();
 
 // Titel auf den Kern reduzieren: "Origin - Text" und "Origin" sind dasselbe Buch
 function coreTitle(t) {
@@ -3153,11 +3230,12 @@ async function subjectBooksForRecs(term) {
 async function buildRecs() {
   const own = ownedBooks();
   const dismissed = recDismissed();
+  const blocked = recBlockedAuthors();
   const chosen = [];
   const ok = (b, src) => {
     if (!b || !b.cover || !b.title || RECS_JUNK.test(b.title)) return false;
     if (src !== "friend" && (!germanOk(b) || scienceLike(b))) return false;
-    if (isOwned(b, own) || dismissed.has(recBookKey(b))) return false;
+    if (isOwned(b, own) || dismissed.has(recBookKey(b)) || authorBlocked(b, blocked)) return false;
     return !chosen.some((c) => sameBook(c, b));
   };
   const take = (list, n, reason, src) => {
@@ -3230,6 +3308,10 @@ function recsSignature() {
 
 async function refreshRecs(force) {
   if (!me || recsBusy) return;
+  if (!recFeedbackLoaded) {
+    await loadRecFeedback();
+    renderRecs();
+  }
   const cache = readJson(RECS_KEY, null);
   if (!force && cache && cache.sig === recsSignature() && Date.now() - cache.ts < RECS_MAX_AGE) return;
   recsBusy = true;
@@ -3252,7 +3334,8 @@ function renderRecs() {
   const cache = readJson(RECS_KEY, null);
   const own = ownedBooks();
   const dismissed = recDismissed();
-  const items = ((cache && cache.items) || []).filter((it) => !isOwned(it.book, own) && !dismissed.has(recBookKey(it.book)));
+  const blocked = recBlockedAuthors();
+  const items = ((cache && cache.items) || []).filter((it) => !isOwned(it.book, own) && !dismissed.has(recBookKey(it.book)) && !authorBlocked(it.book, blocked));
   if (!items.length) {
     box.hidden = true;
     return;
@@ -3276,14 +3359,8 @@ function renderRecs() {
         add.textContent = "Fehler, nochmal";
       }
     };
-    const no = el("button", { className: "btn secondary small", type: "button" }, "Nicht für mich");
-    no.onclick = () => {
-      const list = [...recDismissed(), recBookKey(b)];
-      try {
-        localStorage.setItem(RECS_DISMISS_KEY, JSON.stringify(list.slice(-300)));
-      } catch (e) {}
-      renderRecs();
-    };
+    const no = el("button", { className: "btn secondary small", type: "button" }, "Feedback");
+    no.onclick = () => openRecFeedback(it);
     card.append(
       cover,
       el(
