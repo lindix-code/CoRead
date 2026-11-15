@@ -958,3 +958,23 @@ body.auth-mode input { background: #fff; color: #2d2e34; }
 :root[data-theme="flieder-hell"] body.auth-mode,
 :root[data-theme="flieder-dunkel"] body.auth-mode { background: #44435d; }
 .swatch span.two { background: linear-gradient(135deg, var(--a) 50%, var(--b) 50%) !important; }
+
+/* Kontrollkästchen: eigene Darstellung, passt in allen Farbwelten */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  margin: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 7px;
+  background: var(--card) center / 16px 16px no-repeat;
+  cursor: pointer;
+  vertical-align: middle;
+}
+input[type="checkbox"]:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232d2e34' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
