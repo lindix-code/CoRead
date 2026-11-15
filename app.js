@@ -2152,7 +2152,7 @@ function libPct(lib) {
 }
 
 function libLabel(lib) {
-  if (!lib || !lib.entry || (!lib.entry.status && lib.entry.progress == null)) return "0 % · noch nicht begonnen";
+  if (!lib || !lib.entry || (!lib.entry.status && lib.entry.progress == null)) return "0 %";
   if (lib.entry.status === "read") return "100 % · fertig";
   const info = progressInfo(lib);
   const page = currentPage(lib);
@@ -2257,10 +2257,11 @@ async function renderBuddy() {
     const others = buddy.comments.filter((c) => c.read_id === active.id && c.user_id !== me.id);
     const seen = buddySeenAt(active.id);
     const fresh = others.filter((c) => c.created_at > seen && (c.page == null || c.page <= myPage)).length;
-    const open = el("button", { className: "bcard-comments", type: "button" });
-    open.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.6-.8L3 21l1.9-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>';
-    open.append(el("span", {}, "Kommentare"));
-    if (fresh) open.append(el("span", { className: "buddy-new" }, `${fresh} neu`));
+    const total = buddy.comments.filter((c) => c.read_id === active.id).length;
+    const open = el("button", { className: "bcard-comments" + (fresh ? " has-new" : ""), type: "button" });
+    open.setAttribute("aria-label", fresh ? `${total} Kommentare, ${fresh} neu` : `${total} Kommentare`);
+    open.append(el("span", { className: "bcard-count" }, String(total)));
+    open.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.6-.8L3 21l1.9-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>');
     open.onclick = () => showTab("buddy");
     actions.append(open);
     card.append(actions);

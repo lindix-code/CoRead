@@ -869,9 +869,15 @@ dialog.sheet[open] { display: flex; }
 .bcard-stats .mine { color: var(--gold-text); }
 .bcard-stats .friend { color: var(--primary); }
 .bcard-actions { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
-.bcard-form { flex: 1 1 60%; min-width: 0; }
+.bcard-form { flex: 1 1 auto; min-width: 0; }
 .bcard-form .progress-form { margin: 0; }
-.bcard-comments { flex: 1 1 30%; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--card); border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 0.85rem; color: var(--text); cursor: pointer; min-height: 38px; }
+.bcard-comments { flex: none; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--card); border-radius: 9px; padding: 6px 12px; font: inherit; font-size: 0.95rem; font-weight: 600; color: var(--text); cursor: pointer; min-height: 38px; }
+.bcard-comments.has-new { background: var(--mint); color: var(--on-accent); border-color: var(--mint); }
+.bcard-actions { flex-wrap: nowrap; align-items: center; }
+.bcard-form .progress-input { flex-wrap: nowrap; gap: 6px; }
+.bcard-form .progress-input input { width: 64px; min-width: 0; }
+.bcard-form .mode-select { padding: 8px 4px; }
+.bcard-form .progress-input .btn { white-space: nowrap; }
 .bprop-head { display: flex; justify-content: space-between; align-items: center; margin: 14px 2px 6px; font-weight: 600; color: var(--primary); }
 .bprop-add { width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--primary); color: #fff; font-size: 1.2rem; line-height: 1; cursor: pointer; }
 .bprop { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 12px; padding: 8px 10px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
