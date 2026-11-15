@@ -419,3 +419,21 @@ create policy "buddy_comments_delete" on public.buddy_comments for delete to aut
 -- ---------- Buddy-Read-Rangliste ----------
 alter table public.buddy_reads
   add column if not exists rank int check (rank is null or rank between 1 and 99);
+
+-- ---------- Feedback zu Buchempfehlungen ----------
+create table public.rec_feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade default auth.uid(),
+  book_key text not null,
+  title text not null,
+  authors text[] not null default '{}',
+  source text,
+  category text not null,
+  note text check (note is null or char_length(note) <= 500),
+  block_author boolean not null default false,
+  created_at timestamptz not null default now()
+);
+alter table public.rec_feedback enable row level security;
+create policy "rec_feedback_select" on public.rec_feedback for select to authenticated using (user_id = auth.uid());
+create policy "rec_feedback_insert" on public.rec_feedback for insert to authenticated with check (user_id = auth.uid());
+create policy "rec_feedback_delete" on public.rec_feedback for delete to authenticated using (user_id = auth.uid());
