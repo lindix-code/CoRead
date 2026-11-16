@@ -1,6 +1,6 @@
 {
-  "name": "CoRead – BookClub Lindi & Zaza",
-  "short_name": "CoRead",
+  "name": "BookClub – Lindi & Zaza",
+  "short_name": "BookClub",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -2321,11 +2321,8 @@ async function renderBuddy() {
   }
   box.append(head);
   if (!ranked.length) box.append(el("p", { className: "meta" }, "Noch keine Vorschläge. Mit + schlägst du ein Buch vor (bis zu drei)."));
-  box.append(el("div", { className: "bgal-hint meta" }, "Tippe ein Buch an: Reihenfolge ändern, kommentieren oder entfernen."));
-  const thumb = (up) =>
-    up
-      ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11v9H4v-9h3zM7 11l4-8a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.2 7a2 2 0 0 1-2 1.7H7"/></svg>'
-      : '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 13V4h3v9h-3zM17 13l-4 8a2 2 0 0 1-2-2v-4H5.5a2 2 0 0 1-2-2.3l1.2-7a2 2 0 0 1 2-1.7H17"/></svg>';
+  box.append(el("div", { className: "bgal-hint meta" }, "Antippen für Details und Kommentare. Zum Tauschen gedrückt halten und ziehen."));
+  const thumb = thumbSvg;
   const gal = el("div", { className: "bgal" });
   const voteOf = (p, uid) => buddy.votes.find((v) => v.read_id === p.id && (uid ? v.user_id === uid : v.user_id !== me.id));
   const castVote = async (p, value) => {
@@ -2339,7 +2336,8 @@ async function renderBuddy() {
   ranked.forEach((p, i) => {
     const myVote = voteOf(p, me.id);
     const theirVote = voteOf(p, null);
-    const item = el("div", { className: "bgal-item" + (i === 0 ? " first" : "") });
+    const item = el("div", { className: "bgal-item" });
+    item.dataset.id = p.id;
     const cover = el("button", { className: "bgal-cover", type: "button" });
     cover.setAttribute("aria-label", `${p.book.title}: Details, Reihenfolge und Kommentare`);
     cover.append(buddyCover(p.book), el("span", { className: "bgal-rank" }, String(i + 1)));
@@ -2360,6 +2358,7 @@ async function renderBuddy() {
     gal.append(item);
   });
   if (ranked.length) box.append(gal);
+  enableGalleryDrag(gal);
   const agreed = ranked.find((p) => {
     const mv = voteOf(p, me.id), tv = voteOf(p, null);
     return mv && mv.vote && tv && tv.vote;
@@ -2391,6 +2390,12 @@ async function renderBuddy() {
 }
 
 // Rangliste per Finger/Maus verschieben (Ziehgriff links); speichert die neue Reihenfolge
+function thumbSvg(up) {
+  return up
+      ? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 11v9H4v-9h3zM7 11l4-8a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.2 7a2 2 0 0 1-2 1.7H7"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 13V4h3v9h-3zM17 13l-4 8a2 2 0 0 1-2-2v-4H5.5a2 2 0 0 1-2-2.3l1.2-7a2 2 0 0 1 2-1.7H17"/></svg>';
+}
+
 async function startProposal(p) {
   const active = buddy.reads.find((r) => r.status === "active");
   if (active) await sb.from("buddy_reads").update({ status: "done" }).eq("id", active.id);
@@ -2424,34 +2429,18 @@ function openProposal(id) {
     if (error) return alert("Das hat nicht geklappt: " + error.message);
     await refresh();
   };
-  const move = async (dir) => {
-    const order = ranked.map((r) => r.id);
-    const j = idx + dir;
-    [order[idx], order[j]] = [order[j], order[idx]];
-    await Promise.all(order.map((rid, k) => sb.from("buddy_reads").update({ rank: k + 1 }).eq("id", rid)));
-    await refresh();
-  };
 
   const top = el("div", { className: "prop-top" }, el("div", { className: "bprop-cover" }, buddyCover(p.book)),
     el("div", {}, el("div", { className: "bprop-title" }, p.book.title), el("div", { className: "meta" }, p.book.authors.join(", ")), el("div", { className: "meta" }, `Platz ${idx + 1} · Du: ${fmt(myVote)} · ${nick}: ${fmt(theirVote)}`)));
-  const upBtn = el("button", { className: "btn" + (myVote && myVote.vote ? "" : " secondary"), type: "button" }, "Daumen hoch");
-  const downBtn = el("button", { className: "btn" + (myVote && !myVote.vote ? "" : " secondary"), type: "button" }, "Daumen runter");
+  const upBtn = el("button", { className: "btn prop-thumb" + (myVote && myVote.vote ? "" : " secondary"), type: "button" });
+  const downBtn = el("button", { className: "btn prop-thumb" + (myVote && !myVote.vote ? "" : " secondary"), type: "button" });
+  upBtn.innerHTML = thumbSvg(true);
+  downBtn.innerHTML = thumbSvg(false);
+  upBtn.setAttribute("aria-label", "Daumen hoch");
+  downBtn.setAttribute("aria-label", "Daumen runter");
   upBtn.onclick = () => vote(true);
   downBtn.onclick = () => vote(false);
   const rows = [top, el("div", { className: "actions" }, upBtn, downBtn)];
-
-  const order = el("div", { className: "actions" });
-  if (idx > 0) {
-    const l = el("button", { className: "btn secondary", type: "button" }, "‹ Nach links");
-    l.onclick = () => move(-1);
-    order.append(l);
-  }
-  if (idx < ranked.length - 1) {
-    const r = el("button", { className: "btn secondary", type: "button" }, "Nach rechts ›");
-    r.onclick = () => move(1);
-    order.append(r);
-  }
-  if (order.children.length) rows.push(order);
 
   if (myVote && myVote.vote && theirVote && theirVote.vote) {
     const start = el("button", { className: "btn", type: "button" }, "Als Buddy Read starten");
@@ -2490,7 +2479,7 @@ function openProposal(id) {
     }
     await refresh();
   };
-  rows.push(el("div", { className: "pref-label" }, "Kurze Debatte"), list, area, el("div", { className: "actions" }, send));
+  rows.push(el("div", { className: "pref-label" }, "Kommentar:"), list, area, el("div", { className: "actions" }, send));
 
   // Entfernen: wer vorgeschlagen hat, jederzeit; sonst, wenn ihr beide dagegen seid
   const bothNo = myVote && !myVote.vote && theirVote && !theirVote.vote;
@@ -2508,6 +2497,66 @@ function openProposal(id) {
   if (!$("prop-dialog").open) $("prop-dialog").showModal();
 }
 $("prop-close").onclick = () => $("prop-dialog").close();
+
+// Drag and Drop in der Next-Read-Galerie: gedrückt halten, dann auf die Position eines anderen Buchs ziehen
+let galDragging = false;
+window.addEventListener("touchmove", (e) => { if (galDragging) e.preventDefault(); }, { passive: false });
+function enableGalleryDrag(gal) {
+  for (const item of gal.querySelectorAll(".bgal-item")) {
+    const cover = item.querySelector(".bgal-cover");
+    cover.addEventListener("pointerdown", (e) => {
+      if (e.button) return;
+      const sx = e.clientX, sy = e.clientY;
+      const startOrder = [...gal.children].map((c) => c.dataset.id).join();
+      let dragging = false;
+      const timer = setTimeout(() => {
+        dragging = true;
+        galDragging = true;
+        item.classList.add("dragging");
+      }, 300);
+      const renumber = () => [...gal.children].forEach((c, i) => (c.querySelector(".bgal-rank").textContent = String(i + 1)));
+      const move = (ev) => {
+        if (!dragging) {
+          if (Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8) end(true);
+          return;
+        }
+        for (const other of gal.children) {
+          if (other === item) continue;
+          const r = other.getBoundingClientRect();
+          if (ev.clientX > r.left && ev.clientX < r.right && ev.clientY > r.top && ev.clientY < r.bottom) {
+            if (other.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING) gal.insertBefore(item, other);
+            else other.after(item);
+            renumber();
+            break;
+          }
+        }
+      };
+      const end = async (cancel) => {
+        clearTimeout(timer);
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointercancel", up);
+        const was = dragging;
+        dragging = false;
+        galDragging = false;
+        item.classList.remove("dragging");
+        if (!was) return;
+        // Antippen nach dem Ziehen nicht als Klick werten
+        const stop = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+        cover.addEventListener("click", stop, { capture: true, once: true });
+        setTimeout(() => cover.removeEventListener("click", stop, true), 400);
+        const ids = [...gal.children].map((c) => c.dataset.id);
+        if (ids.join() === startOrder) return;
+        await Promise.all(ids.map((id, i) => sb.from("buddy_reads").update({ rank: i + 1 }).eq("id", id)));
+        renderBuddy();
+      };
+      const up = () => end(false);
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", up);
+    });
+  }
+}
 
 function enableRankDrag(list) {
   for (const grip of list.querySelectorAll(".bprop-grip")) {
