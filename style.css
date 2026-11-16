@@ -1087,3 +1087,6 @@ html:has(body.auth-mode) { overflow: hidden; }
 .bgal-item.dragging { transform: scale(1.07); opacity: 0.85; z-index: 3; position: relative; }
 #prop-dialog .prop-thumb { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; }
 #prop-dialog .prop-thumb svg { width: 26px; height: 26px; }
+.bgal-title { font-size: 0.72rem; line-height: 1.2; height: 2.4em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.bgal-votes { margin-top: auto; }
+.classic-author { font-size: 0.68rem; color: var(--muted); line-height: 1.2; margin-top: -3px; }

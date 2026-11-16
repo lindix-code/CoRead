@@ -2321,7 +2321,6 @@ async function renderBuddy() {
   }
   box.append(head);
   if (!ranked.length) box.append(el("p", { className: "meta" }, "Noch keine Vorschläge. Mit + schlägst du ein Buch vor (bis zu drei)."));
-  box.append(el("div", { className: "bgal-hint meta" }, "Antippen für Details und Kommentare. Zum Tauschen gedrückt halten und ziehen."));
   const thumb = thumbSvg;
   const gal = el("div", { className: "bgal" });
   const voteOf = (p, uid) => buddy.votes.find((v) => v.read_id === p.id && (uid ? v.user_id === uid : v.user_id !== me.id));
@@ -2384,8 +2383,7 @@ async function renderBuddy() {
       el("div", { className: "btile-sub" }, `Du ${fmtN(mineVal)} · ${nick} ${fmtN(theirVal)}`)
     );
   box.append(
-    el("div", { className: "bprop-head" }, el("span", {}, `Unser ${TRACKER_YEAR}`)),
-    el("div", { className: "btiles" }, tile("Gelesene Bücher", mineRead.length, theirRead.length), tile("Gelesene Seiten", pages(mineRead), pages(theirRead)))
+    el("div", { className: "btiles" }, tile(`Gelesene Bücher ${TRACKER_YEAR}`, mineRead.length, theirRead.length), tile(`Gelesene Seiten ${TRACKER_YEAR}`, pages(mineRead), pages(theirRead)))
   );
 }
 
@@ -2663,19 +2661,14 @@ function classicCard([id, title, author, color, image]) {
     // Buchdeckel als Bild (schwarz-weiß, bis ein Buch gelesen ist)
     cover.classList.add("has-img");
     const img = el("img", { src: `assets/classics/${image}?v=1`, alt: "", loading: "lazy" });
-    const text = el("div", { className: "classic-cover-text" }, el("div", { className: "t" }, title), el("div", { className: "a" }, author));
     img.onerror = () => {
       cover.classList.remove("has-img");
       img.remove();
-      text.remove();
-      cover.prepend(el("div", { className: "classic-cover-title" }, title), el("div", { className: "classic-cover-author" }, author));
+      cover.prepend(el("div", { className: "classic-cover-title" }, title));
     };
-    cover.append(img, text);
+    cover.append(img);
   } else {
-    cover.append(
-      el("div", { className: "classic-cover-title" }, title),
-      el("div", { className: "classic-cover-author" }, author)
-    );
+    cover.append(el("div", { className: "classic-cover-title" }, title));
   }
   if (done) {
     const check = el("span", { className: "classic-check" }, "✓");
@@ -2692,6 +2685,7 @@ function classicCard([id, title, author, color, image]) {
   card.append(
     cover,
     el("div", { className: "classic-title" }, title),
+    el("div", { className: "classic-author" }, author),
     el("div", { className: "classic-readers" }, done ? "von " + readers.join(" & ") : "")
   );
   card.onclick = () => toggleClassic(id);
