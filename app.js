@@ -2191,10 +2191,6 @@ function libLabel(lib) {
   return `${info.pct} %${Number.isFinite(page) && page > 0 ? " · S. " + page : ""}`;
 }
 
-function buddyView() {
-  try { return localStorage.getItem("coread-buddy-view") === "bars" ? "bars" : "race"; } catch (e) { return "race"; }
-}
-
 async function renderBuddy() {
   const box = $("buddy");
   let first = !buddy.reads.length;
@@ -2235,44 +2231,10 @@ async function renderBuddy() {
       el("div", { className: "meta" }, b.authors.join(", "))
     );
 
-    // Darstellung per Antippen der Kachel umschalten: "race" = Wettrennen (ein Balken, zwei Marker), "bars" = zwei Fortschrittsbalken
+    // Fortschritt: zwei Balken (du und die Freundin)
     const initial = (name) => ((name || "?").trim()[0] || "?").toUpperCase();
     const trackBox = el("div", {});
     const statsBox = el("div", {});
-    const buildRace = () => {
-      const track = el("div", { className: "btrack" });
-      track.append(el("div", { className: "btrack-bg" }));
-      const fillF = el("div", { className: "btrack-fill friend" });
-      fillF.style.width = theirPct + "%";
-      const fillM = el("div", { className: "btrack-fill mine" });
-      fillM.style.width = myPct + "%";
-      track.append(fillM, fillF);
-      const myComments = buddy.comments.filter((c) => c.read_id === active.id && c.page != null);
-      if (total) {
-        for (const c of myComments) {
-          const pos = Math.min(100, Math.round((c.page / total) * 100));
-          const locked = c.user_id !== me.id && c.page > myPage;
-          const dot = el("div", { className: "btrack-dot" + (locked ? " locked" : "") });
-          dot.style.left = pos + "%";
-          if (locked) dot.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-          track.append(dot);
-        }
-      }
-      const mark = (cls, pct, text) => {
-        const m = el("div", { className: "btrack-mark " + cls }, text);
-        m.style.left = Math.min(97, Math.max(3, pct)) + "%";
-        return m;
-      };
-      track.append(mark("friend", theirPct, initial(friend ? friend.display_name : nick)), mark("mine", myPct, initial(me.display_name)));
-
-      const stats = el(
-        "div",
-        { className: "bcard-stats" },
-        el("span", {}, el("strong", { className: "mine" }, "Du "), libLabel(mine)),
-        el("span", {}, el("strong", { className: "friend" }, nick + " "), libLabel(theirs))
-      );
-      return { track, stats };
-    };
     const buildBars = () => {
       const row = (cls, name, pct, label) => {
         const fill = el("div", { className: "bbar-fill " + cls });
@@ -2282,20 +2244,10 @@ async function renderBuddy() {
       const wrap = el("div", { className: "bbars" }, row("mine", me.display_name, myPct, libLabel(mine)), row("friend", friend ? friend.display_name : nick, theirPct, libLabel(theirs)));
       return { track: wrap, stats: null };
     };
-    const drawVis = () => {
-      const r = buddyView() === "bars" ? buildBars() : buildRace();
-      trackBox.replaceChildren(r.track);
-      statsBox.replaceChildren(...(r.stats ? [r.stats] : []));
-    };
-    drawVis();
+    trackBox.replaceChildren(buildBars().track);
     const topRow = el("div", { className: "bcard-top" }, cover, el("div", { className: "bcard-main" }, head, trackBox));
     card.append(topRow, statsBox);
-    card.classList.add("flip");
-    card.addEventListener("click", (ev) => {
-      if (ev.target.closest("button, input, select, textarea, label, .bcard-cover")) return;
-      try { localStorage.setItem("coread-buddy-view", buddyView() === "bars" ? "race" : "bars"); } catch (e) {}
-      drawVis();
-    });
+
 
     // Update + Kommentare in einer Zeile
     const actions = el("div", { className: "bcard-actions" });

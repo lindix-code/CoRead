@@ -1092,7 +1092,6 @@ html:has(body.auth-mode) { overflow: hidden; }
 .classic-author { font-size: 0.68rem; color: var(--muted); line-height: 1.2; margin-top: -3px; }
 
 /* Buddy Read: Darstellung wechselbar */
-.bcard.flip { cursor: pointer; }
 .bbars { display: flex; flex-direction: column; gap: 9px; margin-top: 8px; }
 .bbar-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .bbar-badge { position: static; transform: none; }
@@ -1110,3 +1109,4 @@ html:has(body.auth-mode) { overflow: hidden; }
 .bgal { margin-bottom: 26px; }
 .btiles { margin-bottom: 14px; }
 .classics { margin-top: 44px; }
+button, .classic { touch-action: manipulation; }
