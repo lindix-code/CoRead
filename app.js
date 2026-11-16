@@ -2184,11 +2184,11 @@ function libPct(lib) {
 }
 
 function libLabel(lib) {
-  if (!lib || !lib.entry || (!lib.entry.status && lib.entry.progress == null)) return "0 %";
+  if (!lib || !lib.entry || (!lib.entry.status && lib.entry.progress == null)) return "0 % · S. 0";
   if (lib.entry.status === "read") return "100 % · fertig";
   const info = progressInfo(lib);
   const page = currentPage(lib);
-  return `${info.pct} %${Number.isFinite(page) && page > 0 ? " · S. " + page : ""}`;
+  return `${info.pct} % · S. ${Number.isFinite(page) && page > 0 ? page : 0}`;
 }
 
 async function renderBuddy() {
@@ -2256,7 +2256,18 @@ async function renderBuddy() {
       const row = (cls, name, pct, label) => {
         const fill = el("div", { className: "bbar-fill " + cls });
         fill.style.width = pct + "%";
-        return el("div", { className: "bbar-row" }, el("div", { className: "btrack-mark bbar-badge " + cls }, initial(name)), el("div", { className: "bbar" }, fill), el("span", { className: "bbar-text" }, label));
+        const bar = el("div", { className: "bbar" }, el("div", { className: "bbar-bg" }, fill));
+        if (cls === "mine" && total) {
+          for (const c of buddy.comments.filter((x) => x.read_id === active.id && x.page != null)) {
+            const locked = c.user_id !== me.id && c.page > myPage;
+            const m = el("div", { className: "bbar-note" + (locked ? " locked" : "") });
+            m.style.left = Math.min(100, Math.round((c.page / total) * 100)) + "%";
+            if (locked) m.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+            m.setAttribute("title", locked ? `Kommentar bei Seite ${c.page}: gesperrt, bis du die Seite erreichst` : `Kommentar bei Seite ${c.page}`);
+            bar.append(m);
+          }
+        }
+        return el("div", { className: "bbar-row" }, el("div", { className: "btrack-mark bbar-badge " + cls }, initial(name)), bar, el("span", { className: "bbar-text" }, label));
       };
       const wrap = el("div", { className: "bbars" }, row("mine", me.display_name, myPct, libLabel(mine)), row("friend", friend ? friend.display_name : nick, theirPct, libLabel(theirs)));
       return { track: wrap, stats: null };

@@ -1126,3 +1126,11 @@ button, .classic { touch-action: manipulation; }
 .bcard.big .bcard-toggle { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; }
 .bcard.big .bcard-toggle svg { width: 20px; height: 20px; }
 .bcard.big .bbars { margin-top: 14px; }
+
+/* Buddy-Balken: gleiche Länge (feste Textspalte), Kommentar-Marker */
+.bbar-row { grid-template-columns: 22px minmax(0, 1fr) 96px; }
+.bbar-text { text-align: right; }
+.bbar { position: relative; overflow: visible; background: none; height: 8px; }
+.bbar-bg { position: absolute; inset: 0; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+.bbar-note { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: var(--card); border: 2px solid var(--primary); transform: translate(-50%, -50%); box-sizing: border-box; }
+.bbar-note.locked { width: 18px; height: 18px; border: 0; background: var(--card); color: var(--muted); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px var(--line); line-height: 0; }
