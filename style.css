@@ -1059,3 +1059,27 @@ html:has(body.auth-mode) { overflow: hidden; }
 .classic-cover-text { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 6px 7px; text-align: center; color: #fff; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.78)); text-shadow: 0 1px 2px rgba(0,0,0,0.6); border-radius: 0 0 6px 3px; }
 .classic-cover-text .t { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 0.78rem; line-height: 1.15; overflow-wrap: anywhere; }
 .classic-cover-text .a { margin-top: 2px; font-size: 0.55rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.85); }
+
+/* Next Read als Cover-Galerie */
+.bgal-hint { margin: 0 2px 8px; }
+.bgal { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; }
+.bgal-item { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.bgal-cover { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 5px; }
+.bgal-cover img, .bgal-cover .cover-placeholder { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: 5px; display: block; }
+.bgal-item.first .bgal-cover { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bgal-rank { position: absolute; top: -6px; left: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; }
+.bgal-title { font-size: 0.78rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.bgal-votes { display: flex; gap: 5px; }
+.bgal-votes .bprop-btn { padding: 5px 8px; }
+.bgal-chip { align-self: flex-start; font-size: 0.7rem; padding: 2px 8px; border-radius: 99px; background: var(--surface2); color: var(--text2); }
+.bgal-chip.yes { background: var(--mint); color: var(--on-accent); }
+.bgal-chip.no { background: var(--line); color: var(--text); }
+.bgal-cmt { font-size: 0.7rem; }
+.bgal-start { width: 100%; margin-top: 12px; }
+#prop-dialog .prop-top { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+#prop-dialog .prop-top .bprop-cover { flex: 0 0 56px; }
+#prop-dialog .actions { margin-top: 10px; }
+#prop-dialog .prop-comments { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+#prop-dialog .prop-comment { padding: 7px 10px; border-radius: 10px; background: var(--surface2); font-size: 0.88rem; }
+#prop-dialog .prop-comment.mine { background: var(--tint-own); }
+#prop-dialog textarea { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
