@@ -810,6 +810,7 @@ async function renderLibrary() {
   $("lib-friend").className = libView === "friend" ? "btn" : "btn secondary";
   $("lib-friend").hidden = false; // immer sichtbar; ohne Verbindung erscheint ein Hinweis
   $("lib-friend").textContent = `${friendNick}s Bücher`;
+  if ($("fav-sub")) $("fav-sub").textContent = `Diese Bücher erscheinen in deinem für ${friendNick} sichtbaren Profil.`;
   $("lib-mine").className = libView === "mine" ? "btn" : "btn secondary";
   $("lib-friend").className = libView === "friend" ? "btn" : "btn secondary";
   try {
