@@ -842,7 +842,7 @@ header h1 { gap: 10px; }
 .buddy-group-title { font-weight: 600; color: var(--text2); padding-bottom: 8px; border-bottom: 1px solid var(--surface2); margin-bottom: 8px; }
 .buddy-group .buddy-comment { box-shadow: none; padding: 6px 0; border-radius: 0; background: none; }
 .buddy-group .buddy-comment + .buddy-comment { border-top: 1px solid var(--hair); }
-.buddy-lock { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; padding: 8px 0; text-align: left; font: inherit; color: var(--text); cursor: pointer; }
+.buddy-lock { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; padding: 8px 0; text-align: left; font: inherit; color: var(--muted); cursor: default; }
 .buddy-lock-text { display: flex; flex-direction: column; gap: 2px; }
 .buddy-composer { position: fixed; left: 0; right: 0; bottom: 72px; z-index: 5; display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--bg); border-top: 1px solid var(--line); }
 .buddy-composer input { padding: 12px 14px; font-size: 1rem; border: 1px solid var(--line); border-radius: 22px; background: var(--card); box-sizing: border-box; }
@@ -1132,5 +1132,3 @@ button, .classic { touch-action: manipulation; }
 .bbar-text { text-align: right; }
 .bbar { position: relative; overflow: visible; background: none; height: 8px; }
 .bbar-bg { position: absolute; inset: 0; border-radius: 4px; background: var(--surface2); overflow: hidden; }
-.bbar-note { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; background: var(--card); border: 2px solid var(--primary); transform: translate(-50%, -50%); box-sizing: border-box; }
-.bbar-note.locked { width: 18px; height: 18px; border: 0; background: var(--card); color: var(--muted); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1px var(--line); line-height: 0; }

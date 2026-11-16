@@ -1929,7 +1929,8 @@ const BUDDY_SEED = [
   ["Emma Jane Austen", "proposed", "austen"],
 ];
 
-let buddy = { reads: [], votes: [], comments: [], friendLib: [] };
+const LOCK_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+let buddy = { reads: [], votes: [], comments: [], locked: [], friendLib: [] };
 let buddySeeding = false;
 
 function currentPage(b) {
@@ -1974,6 +1975,15 @@ async function loadBuddy() {
   ]);
   buddy.votes = votes.data || [];
   buddy.comments = comments.data || [];
+  // Gesperrte Kommentare der anderen Person (nur Seite und Anzahl, der Text wird von der Datenbank nicht ausgeliefert)
+  buddy.locked = [];
+  const act = buddy.reads.find((r) => r.status === "active");
+  if (act) {
+    try {
+      const { data } = await sb.rpc("buddy_locked_counts", { p_read: act.id });
+      buddy.locked = (data || []).map((r) => ({ page: Number(r.page), n: Number(r.n) }));
+    } catch (e) {}
+  }
   try {
     buddy.friendLib = friend ? await fetchLibrary(friend.id) : [];
   } catch (e) {
@@ -2050,7 +2060,6 @@ function buddySeenAt(readId) {
   }
 }
 
-const buddyRevealed = new Set();
 
 async function renderBuddyThread() {
   const box = $("buddy-thread");
@@ -2082,7 +2091,7 @@ async function renderBuddyThread() {
   }
 
   const comments = buddy.comments.filter((c) => c.read_id === active.id).sort((a, b) => ((a.page ?? -1) - (b.page ?? -1)) || (a.created_at < b.created_at ? -1 : 1));
-  if (!comments.length) {
+  if (!comments.length && !buddy.locked.length) {
     box.replaceChildren(el("p", { className: "meta" }, "Noch keine Kommentare. Schreib den ersten unten."));
     return;
   }
@@ -2095,16 +2104,18 @@ async function renderBuddyThread() {
     groups.get(key).push(c);
   }
   const out = [];
-  for (const [key, list] of groups) {
+  for (const l of buddy.locked) if (!groups.has(String(l.page))) groups.set(String(l.page), []);
+  const keys = [...groups.keys()].sort((x, y) => (x === "all" ? -1 : y === "all" ? 1 : Number(x) - Number(y)));
+  for (const key of keys) {
+    const list = groups.get(key);
     const page = key === "all" ? null : Number(key);
     const title = page == null ? "Allgemein" : `Seite ${page}${pctText(page)}`;
-    const locked = list.filter((c) => c.user_id !== me.id && page != null && page > myPage && !buddyRevealed.has(c.id));
-    const shown = list.filter((c) => !locked.includes(c));
+    const lockedN = page == null ? 0 : (buddy.locked.find((l) => l.page === page) || { n: 0 }).n;
     const card = el("div", { className: "buddy-group" }, el("div", { className: "buddy-group-title" }, title));
-    for (const c of shown) {
+    for (const c of list) {
       const own = c.user_id === me.id;
       const item = el("div", { className: "buddy-comment" + (own ? " own" : "") });
-      item.append(el("div", { className: "meta" }, `${own ? "Du" : nick} · ${new Date(c.created_at).toLocaleDateString("de-DE")}${!own && c.created_at > seen ? " · neu" : ""}`), el("div", { className: "pre" }, c.body));
+      item.append(el("div", { className: "meta" }, `${own ? "Du" : nick} · ${new Date(c.created_at).toLocaleDateString("de-DE")}${!own && c.created_at > seen ? " · neu" : ""}`), el("div", { className: "buddy-body" }, c.body));
       if (own) {
         const del = el("button", { className: "link-btn", type: "button" }, "Löschen");
         del.onclick = async () => {
@@ -2116,16 +2127,12 @@ async function renderBuddyThread() {
       }
       card.append(item);
     }
-    if (locked.length) {
-      const lock = el("button", { className: "buddy-lock", type: "button" });
-      lock.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+    if (lockedN) {
+      const lock = el("div", { className: "buddy-lock" });
+      lock.innerHTML = LOCK_SVG;
       lock.append(
-        el("span", { className: "buddy-lock-text" }, el("strong", {}, locked.length === 1 ? "1 Kommentar verdeckt" : `${locked.length} Kommentare verdeckt`), el("span", { className: "meta" }, `Erreiche Seite ${page}${pctText(page)}, um ${locked.length === 1 ? "ihn" : "sie"} zu sehen. Oder tippe zum Aufdecken.`))
+        el("span", { className: "buddy-lock-text" }, el("strong", {}, lockedN === 1 ? "1 Kommentar gesperrt" : `${lockedN} Kommentare gesperrt`), el("span", { className: "meta" }, `Er wird sichtbar, sobald du Seite ${page}${pctText(page)} erreichst.`))
       );
-      lock.onclick = () => {
-        for (const c of locked) buddyRevealed.add(c.id);
-        renderBuddyThread();
-      };
       card.append(lock);
     }
     out.push(card);
@@ -2166,7 +2173,7 @@ async function checkBuddyUnlocks(bookId, beforePage) {
     const now = currentPage(myLibrary.find((b) => b.id === bookId));
     const count = buddy.comments.filter((c) => c.read_id === active.id && c.user_id !== me.id && c.page != null && c.page > beforePage && c.page <= now).length;
     if (!count) return;
-    $("unlock-text").textContent = count === 1 ? "Du hast 1 neuen Kommentar aufgedeckt." : `Du hast ${count} neue Kommentare aufgedeckt.`;
+    $("unlock-text").textContent = count === 1 ? "1 neuer Kommentar freigeschaltet" : `${count} neue Kommentare freigeschaltet`;
     $("unlock-dialog").showModal();
   } catch (e) {}
 }
@@ -2257,16 +2264,6 @@ async function renderBuddy() {
         const fill = el("div", { className: "bbar-fill " + cls });
         fill.style.width = pct + "%";
         const bar = el("div", { className: "bbar" }, el("div", { className: "bbar-bg" }, fill));
-        if (cls === "mine" && total) {
-          for (const c of buddy.comments.filter((x) => x.read_id === active.id && x.page != null)) {
-            const locked = c.user_id !== me.id && c.page > myPage;
-            const m = el("div", { className: "bbar-note" + (locked ? " locked" : "") });
-            m.style.left = Math.min(100, Math.round((c.page / total) * 100)) + "%";
-            if (locked) m.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-            m.setAttribute("title", locked ? `Kommentar bei Seite ${c.page}: gesperrt, bis du die Seite erreichst` : `Kommentar bei Seite ${c.page}`);
-            bar.append(m);
-          }
-        }
         return el("div", { className: "bbar-row" }, el("div", { className: "btrack-mark bbar-badge " + cls }, initial(name)), bar, el("span", { className: "bbar-text" }, label));
       };
       const wrap = el("div", { className: "bbars" }, row("mine", me.display_name, myPct, libLabel(mine)), row("friend", friend ? friend.display_name : nick, theirPct, libLabel(theirs)));
@@ -2299,7 +2296,7 @@ async function renderBuddy() {
     const others = buddy.comments.filter((c) => c.read_id === active.id && c.user_id !== me.id);
     const seen = buddySeenAt(active.id);
     const fresh = others.filter((c) => c.created_at > seen && (c.page == null || c.page <= myPage)).length;
-    const commentCount = buddy.comments.filter((c) => c.read_id === active.id).length;
+    const commentCount = buddy.comments.filter((c) => c.read_id === active.id).length + buddy.locked.reduce((s, l) => s + l.n, 0);
     const open = el("button", { className: "bcard-comments" + (fresh ? " has-new" : ""), type: "button" });
     open.setAttribute("aria-label", fresh ? `${commentCount} Kommentare, ${fresh} neu` : `${commentCount} Kommentare`);
     open.append(el("span", { className: "bcard-count" }, String(commentCount)));
