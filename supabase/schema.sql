@@ -361,6 +361,26 @@ alter table public.profiles
   add column if not exists events_seen_at timestamptz not null default now();
 
 -- ---------- Buddy Read ----------
+-- Bis zu welcher Seite hat jemand ein Buch gelesen? (fertig = unbegrenzt)
+create or replace function public.reader_page(p_user uuid, p_book text)
+returns numeric
+language sql stable security definer set search_path = public as $$
+  select case
+    when le.status = 'read' then 1000000000::numeric
+    when le.progress_mode = 'percent' and coalesce(le.pages_total, b.pages) > 0
+      then round(coalesce(le.progress_percent, 0)::numeric / 100 * coalesce(le.pages_total, b.pages))
+    when le.progress_mode = 'chapter' and le.chapters_total > 0 and coalesce(le.pages_total, b.pages) > 0
+      then round(coalesce(le.progress_chapter, 0)::numeric / le.chapters_total * coalesce(le.pages_total, b.pages))
+    else coalesce(le.progress_page, 0)::numeric
+  end
+  from public.library_entries le
+  join public.books b on b.id = le.book_id
+  where le.user_id = p_user and le.book_id = p_book
+$$;
+
+revoke execute on function public.reader_page(uuid, text) from public, anon;
+grant execute on function public.reader_page(uuid, text) to authenticated;
+
 create table if not exists public.buddy_reads (
   id uuid primary key default gen_random_uuid(),
   book_id text not null unique references public.books (id) on delete cascade,
@@ -410,11 +430,42 @@ create policy "buddy_votes_delete" on public.buddy_votes for delete to authentic
   using (user_id = auth.uid());
 
 create policy "buddy_comments_select" on public.buddy_comments for select to authenticated
-  using (user_id = auth.uid() or public.are_friends(auth.uid(), user_id));
+  using (
+    user_id = auth.uid()
+    or (
+      public.are_friends(auth.uid(), user_id)
+      and (
+        page is null
+        or page <= coalesce(
+          public.reader_page(auth.uid(), (select r.book_id from public.buddy_reads r where r.id = read_id)),
+          0
+        )
+      )
+    )
+  );
 create policy "buddy_comments_insert" on public.buddy_comments for insert to authenticated
   with check (user_id = auth.uid());
 create policy "buddy_comments_delete" on public.buddy_comments for delete to authenticated
   using (user_id = auth.uid());
+
+-- Wie viele Kommentare sind noch gesperrt (nur Seite und Anzahl, kein Text)?
+create or replace function public.buddy_locked_counts(p_read uuid)
+returns table (page int, n bigint)
+language sql stable security definer set search_path = public as $$
+  select c.page, count(*)
+  from public.buddy_comments c
+  join public.buddy_reads r on r.id = c.read_id
+  where c.read_id = p_read
+    and c.user_id <> auth.uid()
+    and public.are_friends(auth.uid(), c.user_id)
+    and c.page is not null
+    and c.page > coalesce(public.reader_page(auth.uid(), r.book_id), 0)
+  group by c.page
+  order by c.page
+$$;
+
+revoke execute on function public.buddy_locked_counts(uuid) from public, anon;
+grant execute on function public.buddy_locked_counts(uuid) to authenticated;
 
 -- ---------- Buddy-Read-Rangliste ----------
 alter table public.buddy_reads
