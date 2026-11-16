@@ -1132,3 +1132,9 @@ button, .classic { touch-action: manipulation; }
 .bbar-text { text-align: right; }
 .bbar { position: relative; overflow: visible; background: none; height: 8px; }
 .bbar-bg { position: absolute; inset: 0; border-radius: 4px; background: var(--surface2); overflow: hidden; }
+
+.pref-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+.pref-fold > summary::-webkit-details-marker { display: none; }
+.pref-fold > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform 0.2s; margin-right: 4px; }
+.pref-fold[open] > summary::after { transform: rotate(-135deg); }
+.pref-fold[open] > summary { margin-bottom: 6px; }
