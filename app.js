@@ -2220,15 +2220,32 @@ async function renderBuddy() {
     const total = (mine && mine.pages) || b.pages || 0;
     const day = Math.max(1, Math.floor((Date.now() - new Date(active.created_at).getTime()) / 86400000) + 1);
 
-    const card = el("div", { className: "bcard" });
+    // Groß/klein umschalten (wie bei "Ich lese gerade" auf der Startseite)
+    let big = false;
+    try { big = localStorage.getItem("coread-buddy-big") === "1"; } catch (e) {}
+    const chevDown = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>';
+    const chevUp = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg>';
+    const toggle = el("button", { className: "hero-toggle bcard-toggle", type: "button" });
+    const card = el("div", { className: "bcard" + (big ? " big" : "") });
+    const paintToggle = () => {
+      toggle.innerHTML = big ? chevUp : chevDown;
+      toggle.setAttribute("aria-label", big ? "Buddy Read kompakt anzeigen" : "Buddy Read groß anzeigen");
+      card.classList.toggle("big", big);
+    };
+    toggle.onclick = () => {
+      big = !big;
+      try { localStorage.setItem("coread-buddy-big", big ? "1" : "0"); } catch (e) {}
+      paintToggle();
+    };
+    paintToggle();
     const cover = el("div", { className: "bcard-cover" });
     cover.append(buddyCover(b));
     cover.onclick = () => showDetail(mine || b, false);
     const head = el(
       "div",
       { className: "bcard-head" },
-      el("div", { className: "bcard-titleline" }, el("div", { className: "bcard-title" }, b.title), el("div", { className: "bcard-day" }, `Tag ${day}`)),
-      el("div", { className: "meta" }, b.authors.join(", "))
+      el("div", { className: "bcard-titleline" }, el("div", { className: "bcard-title" }, b.title), toggle),
+      el("div", { className: "meta" }, b.authors.join(", "), el("span", { className: "bcard-day" }, ` · Tag ${day}`))
     );
 
     // Fortschritt: zwei Balken (du und die Freundin)

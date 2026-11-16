@@ -1051,10 +1051,10 @@ html:has(body.auth-mode) { overflow: hidden; }
 :root[data-theme="flieder-dunkel"] .tile-number { color: var(--accent); }
 
 /* Klassiker mit Buchdeckel-Bild */
-.classic-cover.has-img { padding: 0; background: var(--cover); overflow: hidden; opacity: 0.6; }
+.classic-cover.has-img { padding: 0; background: var(--cover); opacity: 0.6; }
 .classic-cover.has-img.done { opacity: 1; }
 .classic-cover.has-img::before { display: none; }
-.classic-cover.has-img img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+.classic-cover.has-img img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 3px 6px 6px 3px; }
 .classic-cover.has-img .classic-check { z-index: 1; }
 .classic-cover-text { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 6px 7px; text-align: center; color: #fff; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.78)); text-shadow: 0 1px 2px rgba(0,0,0,0.6); border-radius: 0 0 6px 3px; }
 .classic-cover-text .t { font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-size: 0.78rem; line-height: 1.15; overflow-wrap: anywhere; }
@@ -1110,3 +1110,19 @@ html:has(body.auth-mode) { overflow: hidden; }
 .btiles { margin-bottom: 14px; }
 .classics { margin-top: 44px; }
 button, .classic { touch-action: manipulation; }
+
+/* Buddy Read: mehr Luft zwischen den Balken und der Eingabezeile */
+.bbars { margin-bottom: 18px; }
+.bcard-actions { margin-top: 4px; }
+.bcard-titleline .bcard-toggle { flex: none; width: 28px; height: 28px; align-self: center; }
+.bcard-titleline .bcard-toggle svg { width: 16px; height: 16px; }
+/* Buddy Read groß */
+.bcard { position: relative; }
+.bcard.big .bcard-top { flex-direction: column; align-items: center; text-align: center; }
+.bcard.big .bcard-cover { flex: none; width: min(48%, 190px); }
+.bcard.big .bcard-main { width: 100%; }
+.bcard.big .bcard-titleline { justify-content: center; }
+.bcard.big .bcard-title { white-space: normal; font-size: 1.25rem; }
+.bcard.big .bcard-toggle { position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; }
+.bcard.big .bcard-toggle svg { width: 20px; height: 20px; }
+.bcard.big .bbars { margin-top: 14px; }
