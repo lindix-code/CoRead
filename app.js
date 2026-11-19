@@ -1277,7 +1277,67 @@ function openGoalDialog() {
 }
 $("goal-close").onclick = () => $("goal-dialog").close();
 
+// ---------- Rabatt-Hinweis (Daten aus deals.json, wird wöchentlich aktualisiert) ----------
+let dealsData = null;
+const TAG_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>';
+async function loadDeals() {
+  try {
+    const r = await fetch("deals.json?t=" + Date.now(), { cache: "no-store" });
+    dealsData = r.ok ? await r.json() : { deals: [] };
+  } catch (e) {
+    dealsData = { deals: [] };
+  }
+  renderDeals();
+}
+function activeDeals() {
+  const today = new Date().toISOString().slice(0, 10);
+  return ((dealsData && dealsData.deals) || []).filter((d) => d.shop && d.percent && (!d.from || d.from <= today) && (!d.until || d.until >= today));
+}
+function dealDate(iso) {
+  const [, m, d] = iso.split("-");
+  return `${Number(d)}.${Number(m)}.`;
+}
+function renderDeals() {
+  const box = $("deal-banner");
+  if (!box) return;
+  const deals = activeDeals();
+  const sig = deals.map((d) => `${d.shop}${d.percent}${d.until || ""}`).join("|");
+  let closed = "";
+  try { closed = localStorage.getItem("bookclub-deals-closed") || ""; } catch (e) {}
+  if (!deals.length || closed === sig) {
+    box.hidden = true;
+    return;
+  }
+  const icon = el("span", { className: "deal-icon" });
+  icon.innerHTML = TAG_SVG;
+  const close = el("button", { className: "deal-close", type: "button", "aria-label": "Hinweis schließen" }, "×");
+  close.onclick = (ev) => {
+    ev.stopPropagation();
+    try { localStorage.setItem("bookclub-deals-closed", sig); } catch (e) {}
+    box.hidden = true;
+  };
+  let body;
+  if (deals.length === 1) {
+    const d = deals[0];
+    const until = d.until ? `Läuft bis ${dealDate(d.until)}` : "Aktion läuft";
+    body = el("div", { className: "deal-body" }, el("strong", {}, `${d.shop}: ${d.percent} % auf ${d.scope || "Medien"}`), el("span", { className: "meta" }, `${until}${d.code ? " · Code antippen zum Kopieren" : ""}`));
+    box.onclick = async () => {
+      if (d.code) {
+        try { await navigator.clipboard.writeText(d.code); } catch (e) {}
+        box.querySelector(".meta").textContent = `Code ${d.code} kopiert`;
+      }
+      if (d.url) window.open(d.url, "_blank", "noopener");
+    };
+  } else {
+    body = el("div", { className: "deal-body" }, el("strong", {}, "Bücher gerade günstiger"), ...deals.map((d) => el("span", { className: "deal-line" }, el("b", {}, d.shop), ` · ${d.percent} % auf ${d.scope || "Medien"}${d.until ? `, bis ${dealDate(d.until)}` : ""}`)));
+    box.onclick = null;
+  }
+  box.replaceChildren(icon, body, close);
+  box.hidden = false;
+}
+
 function renderHome() {
+  if (dealsData) renderDeals();
   // Neueste zuerst: nach Beginn-Datum absteigend (ohne Datum = frisch hinzugefügt, ganz vorn); gleiche Werte behalten die Bibliotheks-Reihenfolge
   const reading = myLibrary
     .filter((b) => b.entry.status === "reading")
@@ -4003,3 +4063,4 @@ function applyTheme(t) {
 }
 document.querySelectorAll("[data-theme-pick]").forEach((b) => { b.onclick = () => applyTheme(b.dataset.themePick); });
 applyTheme(document.documentElement.getAttribute("data-theme") || "petrol");
+loadDeals();

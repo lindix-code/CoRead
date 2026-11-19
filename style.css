@@ -1138,3 +1138,11 @@ button, .classic { touch-action: manipulation; }
 .pref-fold > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform 0.2s; margin-top: -4px; }
 .pref-fold[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
 .pref-fold[open] > summary { margin-bottom: 6px; }
+
+#deal-banner { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 12px; padding: 12px 14px; margin: 0 0 14px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); cursor: pointer; }
+#deal-banner[hidden] { display: none; }
+.deal-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); color: var(--primary); display: flex; align-items: center; justify-content: center; flex: none; }
+.deal-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.deal-line { font-size: 0.9rem; color: var(--text2); }
+.deal-line b { color: var(--text); font-weight: 600; }
+.deal-close { background: none; border: 0; color: var(--muted); font-size: 1.4rem; line-height: 1; padding: 4px 6px; align-self: flex-start; cursor: pointer; }
