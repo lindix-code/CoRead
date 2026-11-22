@@ -1146,3 +1146,14 @@ button, .classic { touch-action: manipulation; }
 .deal-line { font-size: 0.9rem; color: var(--text2); }
 .deal-line b { color: var(--text); font-weight: 600; }
 .deal-close { background: none; border: 0; color: var(--muted); font-size: 1.4rem; line-height: 1; padding: 4px 6px; align-self: flex-start; cursor: pointer; }
+
+.pc { margin-top: 10px; border-top: 1px solid var(--hair); padding-top: 8px; }
+.pc-toggle { background: none; border: 0; padding: 4px 0; font: inherit; font-weight: 600; color: var(--text2); cursor: pointer; }
+.pc-panel { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.pc-panel[hidden] { display: none; }
+.pc-item { padding: 6px 0; }
+.pc-item + .pc-item { border-top: 1px solid var(--hair); }
+.pc-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pc-form { display: flex; gap: 8px; align-items: center; }
+.pc-form input { flex: 1; min-width: 0; padding: 10px 14px; font-size: 1rem; border: 1px solid var(--line); border-radius: 22px; background: var(--card); box-sizing: border-box; color: var(--text); }
+.pc-err { color: #b3261e; }

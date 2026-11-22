@@ -1546,9 +1546,16 @@ async function loadFeed() {
     for (const item of signed || []) if (item.signedUrl) urls[item.path] = item.signedUrl;
   }
 
+  // Kommentare zu allen angezeigten Beiträgen in einer Abfrage holen
+  const commentsByPost = {};
+  if (posts.length) {
+    const { data: cs } = await sb.from("post_comments").select("id, post_id, user_id, body, created_at, profiles(display_name)").in("post_id", posts.map((p) => p.id)).order("created_at", { ascending: true });
+    for (const c of cs || []) (commentsByPost[c.post_id] = commentsByPost[c.post_id] || []).push(c);
+  }
+
   if (posts.length) markFeedSeen(posts[0].created_at);
   $("feed-status").textContent = posts.length ? "" : "Noch keine Einträge. Schreib den ersten!";
-  $("feed").replaceChildren(...posts.map((p) => postCard(p, urls)));
+  $("feed").replaceChildren(...posts.map((p) => postCard(p, urls, commentsByPost[p.id] || [])));
   $("feed-more").hidden = !hasMore;
   requestAnimationFrame(checkClamps);
 }
@@ -1600,7 +1607,56 @@ function clampedBody(text) {
   return [body, more];
 }
 
-function postCard(post, urls) {
+const openPostComments = new Set();
+function postCommentsBlock(post, list) {
+  const wrap = el("div", { className: "pc" });
+  const toggle = el("button", { className: "pc-toggle", type: "button" }, list.length ? `Kommentare (${list.length})` : "Kommentieren");
+  const panel = el("div", { className: "pc-panel" });
+  panel.hidden = !openPostComments.has(post.id);
+  for (const c of list) {
+    const own = c.user_id === me.id;
+    const nm = own ? "Du" : (c.profiles && c.profiles.display_name) || friendNick || "Freundin";
+    const item = el("div", { className: "pc-item" }, el("div", { className: "meta" }, `${nm} · ${formatDateTime(c.created_at)}`), el("div", { className: "pc-body" }, c.body));
+    if (own) {
+      const del = el("button", { className: "link-btn", type: "button" }, "Löschen");
+      del.onclick = async () => {
+        if (!confirm("Kommentar löschen?")) return;
+        await sb.from("post_comments").delete().eq("id", c.id);
+        loadFeed();
+      };
+      item.append(del);
+    }
+    panel.append(item);
+  }
+  const input = el("input", { type: "text", maxLength: 1000, placeholder: "Kommentar schreiben …", autocomplete: "off" });
+  const send = el("button", { className: "btn small", type: "button" }, "Senden");
+  const err = el("div", { className: "meta pc-err" });
+  const submit = async () => {
+    const body = input.value.trim();
+    if (!body) return;
+    send.disabled = true;
+    const { error } = await sb.from("post_comments").insert({ post_id: post.id, body });
+    send.disabled = false;
+    if (error) {
+      err.textContent = "Senden hat nicht geklappt: " + error.message;
+      return;
+    }
+    openPostComments.add(post.id);
+    loadFeed();
+  };
+  send.onclick = submit;
+  input.onkeydown = (ev) => { if (ev.key === "Enter") { ev.preventDefault(); submit(); } };
+  panel.append(el("div", { className: "pc-form" }, input, send), err);
+  toggle.onclick = () => {
+    panel.hidden = !panel.hidden;
+    if (panel.hidden) openPostComments.delete(post.id);
+    else openPostComments.add(post.id);
+  };
+  wrap.append(toggle, panel);
+  return wrap;
+}
+
+function postCard(post, urls, comments = []) {
   const mine = post.user_id === me.id;
   const name = mine ? "Du" : (post.profiles && post.profiles.display_name) || "Freundin";
   const authorName = mine ? me.display_name : (post.profiles && post.profiles.display_name) || "Freundin";
@@ -1678,6 +1734,7 @@ function postCard(post, urls) {
     // Automatisierte Beiträge nur löschen; ihre Sterne folgen der Bewertung in der Bibliothek
     card.append(el("div", { className: "actions" }, ...(post.auto ? [del] : [edit, del])));
   }
+  card.append(postCommentsBlock(post, comments));
   return card;
 }
 
