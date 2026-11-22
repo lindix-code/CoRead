@@ -1293,6 +1293,9 @@ function activeDeals() {
   const today = new Date().toISOString().slice(0, 10);
   return ((dealsData && dealsData.deals) || []).filter((d) => d.shop && d.percent && (!d.from || d.from <= today) && (!d.until || d.until >= today));
 }
+function dealScope(d) {
+  return String(d.scope || "Medien").replace(/\s*\(.*\)\s*$/, "") || "Medien";
+}
 function dealDate(iso) {
   const [, m, d] = iso.split("-");
   return `${Number(d)}.${Number(m)}.`;
@@ -1320,7 +1323,7 @@ function renderDeals() {
   if (deals.length === 1) {
     const d = deals[0];
     const until = d.until ? `Läuft bis ${dealDate(d.until)}` : "Aktion läuft";
-    body = el("div", { className: "deal-body" }, el("strong", {}, `${d.shop}: ${d.percent} % auf ${d.scope || "Medien"}`), el("span", { className: "meta" }, `${until}${d.code ? " · Code antippen zum Kopieren" : ""}`));
+    body = el("div", { className: "deal-body" }, el("strong", {}, `${d.shop}: ${d.percent} % auf ${dealScope(d)}`), el("span", { className: "meta" }, `${until}${d.code ? " · Code antippen zum Kopieren" : ""}`));
     box.onclick = async () => {
       if (d.code) {
         try { await navigator.clipboard.writeText(d.code); } catch (e) {}
@@ -1329,7 +1332,7 @@ function renderDeals() {
       if (d.url) window.open(d.url, "_blank", "noopener");
     };
   } else {
-    body = el("div", { className: "deal-body" }, el("strong", {}, "Bücher gerade günstiger"), ...deals.map((d) => el("span", { className: "deal-line" }, el("b", {}, d.shop), ` · ${d.percent} % auf ${d.scope || "Medien"}${d.until ? `, bis ${dealDate(d.until)}` : ""}`)));
+    body = el("div", { className: "deal-body" }, el("strong", {}, "Bücher gerade günstiger"), ...deals.map((d) => el("span", { className: "deal-line" }, el("b", {}, d.shop), ` · ${d.percent} % auf ${dealScope(d)}${d.until ? `, bis ${dealDate(d.until)}` : ""}`)));
     box.onclick = null;
   }
   box.replaceChildren(icon, body, close);

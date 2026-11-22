@@ -1157,3 +1157,9 @@ button, .classic { touch-action: manipulation; }
 .pc-form { display: flex; gap: 8px; align-items: center; }
 .pc-form input { flex: 1; min-width: 0; padding: 10px 14px; font-size: 1rem; border: 1px solid var(--line); border-radius: 22px; background: var(--card); box-sizing: border-box; color: var(--text); }
 .pc-err { color: #b3261e; }
+
+#deal-banner { background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); }
+#deal-banner .meta, #deal-banner .deal-line { color: var(--on-accent); opacity: 1; }
+#deal-banner .deal-line b { color: var(--on-accent); }
+#deal-banner .deal-icon { background: var(--on-accent); color: var(--accent); }
+#deal-banner .deal-close { color: var(--on-accent); }
