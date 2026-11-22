@@ -1163,3 +1163,7 @@ button, .classic { touch-action: manipulation; }
 #deal-banner .deal-line b { color: var(--on-accent); }
 #deal-banner .deal-icon { background: var(--on-accent); color: var(--accent); }
 #deal-banner .deal-close { color: var(--on-accent); }
+
+@media (min-width: 700px) {
+  .bgal { grid-template-columns: repeat(auto-fill, 104px); justify-content: start; gap: 14px 12px; }
+}
