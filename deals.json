@@ -1,13 +1,12 @@
 {
-  "updated": "2026-11-22",
+  "updated": "2026-11-27",
   "deals": [
     {
       "shop": "rebuy",
-      "percent": 18,
+      "percent": 20,
       "scope": "Medien",
-      "from": "2026-11-22",
-      "until": "2026-11-26",
-      "code": "RBLACKWEEKME",
+      "from": "2026-11-27",
+      "until": "2026-11-28",
       "url": "https://www.rebuy.de/"
     }
   ]
